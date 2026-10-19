@@ -40,7 +40,10 @@ h2.view{font-size:1.2rem;margin:.6rem 0 .2rem}
 .sheet .it{font-weight:600}.sheet .pp{color:var(--muted);font-size:.88rem}
 .totals{position:sticky;bottom:1rem;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.6rem 1rem;margin-top:1rem;display:flex;flex-wrap:wrap;gap:.4rem 1.6rem;box-shadow:0 2px 10px #0001}
 .totals b{font-size:1.15rem}
-@media(max-width:700px){.sheet .hide-sm{display:none}}
+.sheet td{min-width:0;overflow-wrap:break-word}.sheet a{overflow-wrap:anywhere}
+.sheet .show-sm{display:none;margin-top:.25rem}.sheet .show-sm .flag{white-space:normal}
+/* A scroll container would unstick the header, so only phones get the overflow backstop. */
+@media(max-width:700px){.sheet-scroll{overflow-x:auto}.sheet .hide-sm{display:none}.sheet .show-sm{display:block}.sheet th,.sheet td{padding:.4rem .3rem}}
 @media print{.tabs,.bar,.totals{display:none}.sheet th{position:static}}
 
 /* C: system map */
@@ -151,7 +154,7 @@ function OrderSheet() {
     if (!S.done.has(r.key)) left++;
     return `<tr class="${S.done.has(r.key) ? "done" : ""}">
       <td><input type="checkbox" data-done="${esc(r.key)}" ${S.done.has(r.key) ? "checked" : ""} aria-label="Ordered"></td>
-      <td><div class="it">${esc(r.item)}</div><div class="pp">${esc(r.purpose)}${r.both ? " One each for TX and RX." : ""}${r.group === "Commissioning" ? " Setup only." : ""}</div></td>
+      <td><div class="it">${esc(r.item)}</div><div class="pp">${esc(r.purpose)}${r.both ? " One each for TX and RX." : ""}${r.group === "Commissioning" ? " Setup only." : ""}</div>${flagOf(r) ? `<div class="show-sm">${flag(r)}</div>` : ""}</td>
       <td>${r.url ? `<a href="${esc(r.url)}" target="_blank">${esc(r.part)}</a>` : esc(r.part) || "—"}<div class="pp">${esc(r.vendor)}</div></td>
       <td class="num">${r.qty}</td><td class="num hide-sm">${usd(p)}</td><td class="num">${usd(line)}</td>
       <td class="hide-sm">${flag(r)}${r.substitute && !r.substitute.startsWith("None") ? `<div class="pp">Substitutes OK</div>` : ""}</td></tr>`;
@@ -162,8 +165,8 @@ function OrderSheet() {
   return `<h2 class="view">Everything to build one station</h2>
     <p class="muted">Prices checked on each line's last-priced date; shipping and tax not included.</p>
     ${controls()}${note}
-    <table class="sheet"><thead><tr><th></th><th>Item</th><th>Buy this</th><th class="num">Qty</th><th class="num hide-sm">Unit</th><th class="num">Line</th><th class="hide-sm">Notes</th></tr></thead>
-    <tbody>${body}</tbody></table>
+    <div class="sheet-scroll"><table class="sheet"><thead><tr><th></th><th>Item</th><th>Buy this</th><th class="num">Qty</th><th class="num hide-sm">Unit</th><th class="num">Line</th><th class="hide-sm">Notes</th></tr></thead>
+    <tbody>${body}</tbody></table></div>
     <div class="totals" id="totals"><span>Known cost <b>${usd(total)}</b></span><span>${unpriced} lines need a quote</span><span>${left} of ${rows.length} still to order</span>
     <span><button id="csv">Copy as CSV</button></span></div>`;
 }
