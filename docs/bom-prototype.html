@@ -1,0 +1,384 @@
+<!doctype html>
+<!-- PROTOTYPE, throwaway. Template for bom/prototype_views.py. Four BOM views, ?variant=A..D. -->
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>BOM view prototype</title>
+<style>
+:root{--bg:#fbfaf7;--panel:#fff;--fg:#1b1b1b;--muted:#646464;--line:#dedbd3;--head:#f1efe9;--link:#0b57d0;
+--rf:#d9480f;--data:#1c7ed6;--ctl:#7048e8;--mech:#868e96;--ok:#2b8a3e;--warn:#a46b00;--up:#1c7ed6;--un:#c2410c;
+--roof:#e7f0fb;--entry:#f4eee2;--shack:#eef5ec;--bench:#f3edf7}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111214;--panel:#1a1b1e;--fg:#e8e8e8;--muted:#a0a0a0;--line:#2e3035;--head:#202227;--link:#8ab4f8;
+--rf:#ff8a4c;--data:#5aa9ff;--ctl:#a48bff;--mech:#8d949b;--ok:#69db7c;--warn:#ffd43b;--up:#74c0fc;--un:#ffa94d;
+--roof:#16202c;--entry:#231f17;--shack:#17221a;--bench:#211a26}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,sans-serif;padding-bottom:5rem}
+a{color:var(--link)}
+.wrap{max-width:72rem;margin:0 auto;padding:1rem 16px}
+h1{font-size:1.4rem;margin:.2rem 0}
+.muted{color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--panel);color:var(--fg);padding:.35rem .8rem;font:inherit;cursor:pointer}
+.seg button.on{background:var(--fg);color:var(--bg)}
+.bar{display:flex;flex-wrap:wrap;gap:.6rem 1rem;align-items:center;margin:.8rem 0}
+.flag{display:inline-block;font-size:.75rem;padding:.05rem .45rem;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.flag.quote{color:var(--warn)}.flag.intl{color:var(--up)}.flag.proves{color:var(--ctl)}.flag.site{color:var(--muted)}
+.st{font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.st.proven{color:var(--ok)}.st.substitute{color:var(--warn)}.st.upgrade{color:var(--up)}.st.untested{color:var(--un)}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* A: order sheet */
+.sheet{width:100%;border-collapse:collapse;background:var(--panel)}
+.sheet th,.sheet td{border-bottom:1px solid var(--line);padding:.45rem .5rem;vertical-align:top;text-align:left}
+.sheet th{background:var(--head);font-size:.8rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);position:sticky;top:0}
+.sheet tr.done td{opacity:.45}.sheet tr.done .it{text-decoration:line-through}
+.sheet .grp td{background:var(--bg);font-weight:600;font-size:.8rem;color:var(--muted);padding-top:.9rem}
+.sheet .it{font-weight:600}.sheet .pp{color:var(--muted);font-size:.88rem}
+.totals{position:sticky;bottom:3.6rem;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.6rem 1rem;margin-top:1rem;display:flex;flex-wrap:wrap;gap:.4rem 1.6rem;box-shadow:0 2px 10px #0001}
+.totals b{font-size:1.15rem}
+@media(max-width:700px){.sheet .hide-sm{display:none}}
+@media print{#switcher,.bar,.totals{display:none}.sheet th{position:static}}
+
+/* B: by vendor */
+.carts{display:grid;grid-template-columns:repeat(auto-fill,minmax(20rem,1fr));gap:1rem}
+.cart{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem}
+.cart h3{margin:0;font-size:1.05rem;display:flex;justify-content:space-between;gap:1rem}
+.cart ol{margin:.6rem 0 0;padding-left:1.1rem}.cart li{margin:.45rem 0}
+.cart .sub{font-size:.85rem;color:var(--muted)}
+.cart.special{border-style:dashed}
+.steps{counter-reset:s;display:grid;gap:.4rem;margin:.6rem 0 1.4rem;padding:0;list-style:none}
+.steps li{counter-increment:s;padding-left:2rem;position:relative}
+.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:1.4rem;height:1.4rem;border-radius:50%;background:var(--fg);color:var(--bg);font-size:.8rem;display:grid;place-items:center}
+
+/* C: system map */
+.map{display:grid;grid-template-columns:minmax(0,1fr) 22rem;gap:1rem;align-items:start}
+@media(max-width:900px){.map{grid-template-columns:1fr}}
+.map svg{width:100%;height:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;display:block}
+.node rect{fill:var(--panel);stroke:var(--fg);stroke-width:1.5;rx:10}
+.node text{fill:var(--fg);font-size:14px;font-weight:600;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+.node .sub{font-size:11px;font-weight:400;fill:var(--muted)}
+.node{cursor:pointer;transition:opacity .2s}
+.node:hover rect,.node.sel rect{stroke-width:3}
+.node.sel rect{stroke:var(--rf)}
+.node.ghost{opacity:.22}.node.ghost rect{stroke-dasharray:5 4}
+.node.dim{opacity:.35}
+.edge{fill:none;stroke-width:2.5;transition:opacity .2s}
+.edge.rf{stroke:var(--rf);stroke-dasharray:8 6;animation:flow 1s linear infinite}
+.edge.data{stroke:var(--data)}.edge.ctl{stroke:var(--ctl);stroke-dasharray:2 5}.edge.mech{stroke:var(--mech);stroke-width:5;opacity:.6}
+.edge.ghost{opacity:.12}.edge.dim{opacity:.12}.edge.hot{stroke-width:4.5;opacity:1}
+@keyframes flow{to{stroke-dashoffset:-14}}
+@media(prefers-reduced-motion:reduce){.edge.rf{animation:none}}
+.zone{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;fill:var(--muted)}
+.inspector{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem;position:sticky;top:1rem;max-height:calc(100vh - 6rem);overflow:auto}
+.inspector h2{margin:0 0 .3rem;font-size:1.2rem}
+.part{border-top:1px solid var(--line);padding:.7rem 0}
+.part .row{display:flex;justify-content:space-between;gap:.6rem;align-items:baseline}
+.part details{font-size:.88rem;margin-top:.3rem}.part summary{cursor:pointer;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:.3rem 1rem;font-size:.85rem}
+.legend span::before{content:"";display:inline-block;width:1.4rem;height:4px;vertical-align:middle;margin-right:.35rem;background:var(--c)}
+.legend label{cursor:pointer}
+.conn{font-size:.88rem;margin:.4rem 0 .6rem;padding:0;list-style:none}
+.conn li::before{content:"";display:inline-block;width:.9rem;height:3px;margin-right:.4rem;vertical-align:middle;background:var(--c)}
+
+/* D: trace a pass */
+.trace{display:grid;grid-template-columns:20rem minmax(0,1fr);gap:1.4rem;align-items:start}
+@media(max-width:860px){.trace{grid-template-columns:1fr}}
+.story{position:sticky;top:1rem;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem}
+.story .phase{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--rf);font-weight:700}
+.story h2{margin:.2rem 0 .5rem;font-size:1.3rem}
+.story .nav{display:flex;gap:.5rem;margin-top:1rem}
+.story .nav button{flex:1;padding:.5rem;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;cursor:pointer}
+.dots{display:flex;gap:.35rem;margin-top:.8rem;flex-wrap:wrap}
+.dots button{width:.8rem;height:.8rem;border-radius:50%;border:0;background:var(--line);padding:0;cursor:pointer}
+.dots button.on{background:var(--rf)}
+.stack{display:flex;flex-direction:column;gap:0}
+.stage{display:grid;grid-template-columns:2.4rem minmax(0,1fr) auto;gap:.8rem;align-items:center;padding:.65rem .9rem;border:1px solid var(--line);border-radius:10px;background:var(--panel);transition:all .25s;cursor:pointer}
+.stage+.stage{margin-top:.25rem}
+.stage .ic{font-size:1.4rem;text-align:center}
+.stage .nm{font-weight:650}.stage .pt{font-size:.85rem;color:var(--muted)}
+.stage.off{opacity:.3;transform:scale(.985)}
+.stage.lit{border-color:var(--rf);box-shadow:0 0 0 2px color-mix(in srgb,var(--rf) 35%,transparent)}
+.stage.lit .ic{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.18)}}
+.stage .more{grid-column:2/4;font-size:.88rem;display:none}
+.stage.open .more{display:block}
+.arrow{height:1.2rem;display:grid;place-items:center;color:var(--muted);font-size:.9rem;transition:color .25s}
+.arrow.down{color:var(--rf)}.arrow.up{color:var(--data)}
+.stage.sat{background:linear-gradient(90deg,var(--roof),var(--panel))}
+
+/* switcher (prototype chrome, not part of any design) */
+#switcher{position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);display:flex;align-items:center;gap:.4rem;background:#111;color:#fff;border-radius:99px;padding:.35rem .5rem;box-shadow:0 6px 24px #0006;z-index:99;font:600 13px system-ui;border:2px dashed #ffd43b}
+#switcher button{background:#333;color:#fff;border:0;border-radius:50%;width:2rem;height:2rem;cursor:pointer;font-size:1rem}
+#switcher span{padding:0 .6rem;white-space:nowrap}
+</style></head><body>
+<div id="app"></div>
+<div id="switcher"><button id="prev" aria-label="Previous variant">←</button><span id="vlabel"></span><button id="next" aria-label="Next variant">→</button></div>
+<script>
+const DATA = {"tiers": [{"key": "uplink", "title": "Uplink station", "blurb": "Commands the satellite. Everything in the receive station plus the commissioning kit."}, {"key": "receive", "title": "Receive station", "blurb": "Receives only. A strict subset of the uplink station."}, {"key": "upgrades", "title": "Recommended upgrades", "blurb": "Suggested by the RF review but not yet in the chain on a pass that closed the link (ADR 0001)."}], "rows": {"uplink": [{"group": "Compute", "item": "Raspberry Pi, 64-bit, 4 GB or more", "vendor": "Raspberry Pi", "part": "Raspberry Pi 5 8 GB", "url": "https://www.pishop.us/product/raspberry-pi-5-8gb/", "qty": "1", "unit_price_usd": "175.00", "substitute": "Pi 400 (proven at LA), Pi 4 B, Pi 500", "status": "substitute", "last_priced": "2026-10-18", "note": "Buy-new recommendation. Pi 400 is the proven unit at LA; Pi 5 is an accepted substitute. $175.00 is the pishop.us price seen on the last-priced date, far above the $80 launch MSRP because of the 2026 memory price rise. Any 64-bit Pi with 4 GB or more runs the station software. NTP time sync is a hard requirement.", "purpose": "Station computer. Runs tracking and the ground software.", "node": "pi", "flag": ""}, {"group": "Compute", "item": "Official 27 W USB-C power supply", "vendor": "Raspberry Pi", "part": "Raspberry Pi 27W USB-C Power Supply", "url": "https://www.pishop.us/product/raspberry-pi-27w-usb-c-power-supply-white-us/", "qty": "1", "unit_price_usd": "12.95", "substitute": "Any 5 V 5 A USB-C PD supply", "status": "substitute", "last_priced": "2026-10-18", "note": "Only needed with a Pi 5. The Pi 400 has its own 15 W supply. Under-powered supplies cause USB resets on the GRC.", "purpose": "Powers the Pi 5.", "node": "pi", "flag": ""}, {"group": "Compute", "item": "Official Pi 5 case with fan", "vendor": "Raspberry Pi", "part": "Raspberry Pi 5 Case (fan included)", "url": "https://www.pishop.us/product/raspberry-pi-5-case-red-white/", "qty": "1", "unit_price_usd": "10.95", "substitute": "Any case with active cooling", "status": "substitute", "last_priced": "2026-10-18", "note": "Only needed with a Pi 5. The station runs unattended; a fan keeps the Pi out of thermal throttling during long passes.", "purpose": "Keeps the Pi cool through unattended passes.", "node": "pi", "flag": ""}, {"group": "Compute", "item": "microSD card, 32 GB or more, A2", "vendor": "SanDisk", "part": "SanDisk Extreme 64 GB microSDXC", "url": "https://www.amazon.com/dp/B09X7BK27V", "qty": "1", "unit_price_usd": "?", "substitute": "Any A2-rated card 32 GB or more", "status": "untested", "last_priced": "2026-10-18", "note": "Price not confirmed on the last-priced date; expect about $12. The LA station's card model was not recorded, so this line is untested as a specific part.", "purpose": "Boot disk for the Pi.", "node": "pi", "flag": "quote"}, {"group": "Rotator", "item": "Azimuth-elevation rotator mechanism", "vendor": "Yaesu", "part": "G-5500DC", "url": "https://www.dxengineering.com/parts/ysu-g-5500dc", "qty": "1", "unit_price_usd": "969.99", "substitute": "Any mechanism that can sit behind a GS-232B controller", "status": "proven", "last_priced": "2026-10-18", "note": "Proven at LA (G-5500) and Borrego. Ships with the OEM dual controller, which the ERC Duo plugs into. 120 VAC controller. Price from DX Engineering; GigaParts lists $969.95.", "purpose": "Turns and tilts the antenna to follow the satellite.", "node": "rotator", "flag": ""}, {"group": "Rotator", "item": "Rotator computer interface, GS-232B emulation, USB serial", "vendor": "Vibroplex (WiMo design)", "part": "ERC-DUO", "url": "https://www.vibroplex.com/contents/en-us/d9204.html", "qty": "1", "unit_price_usd": "159.95", "substitute": "Any controller that speaks GS-232B over a serial port (hamlib model 603). Borrego runs the Yaesu OEM controller behind a generic GS-232B interface.", "status": "proven", "last_priced": "2026-10-18", "note": "Reference controller. Enumerates as an FTDI FT230X USB serial; the station file keys the rotator on that serial. Sold assembled only. DX Engineering lists the WiMo-branded unit at $209.99.", "purpose": "Lets the Pi drive the rotator over USB.", "node": "rotctl", "flag": ""}, {"group": "Antenna", "item": "70 cm crossed Yagi, RHCP, 8+8 elements", "vendor": "Antennas-Amplifiers", "part": "70cmCROSS16WR (70 cm LEO pack)", "url": "https://antennas-amplifiers.com/70cm-leo-pack-antenna/", "qty": "1", "unit_price_usd": "268.00", "substitute": "M2 Antennas 436CP16, $367.95 at https://m2inc.com/FG436CP16", "status": "proven", "last_priced": "2026-10-18", "note": "Proven at LA. Listed at 229.00 EUR on the vendor site; $268.00 is that figure converted at about 1.17 USD/EUR on the last-priced date. Ships from Serbia; add shipping and import duty. 13.3 dBi, N connector. Note the 436CP16 at Borrego never closed an uplink, so the M2 is accepted on the operator's word for receive and the LA substitute note only.", "purpose": "The antenna. Sends and receives the satellite signal.", "node": "antenna", "flag": "intl"}, {"group": "Feedline", "item": "LMR-400 coax, N male both ends, 100 ft", "vendor": "RSP Supply", "part": "Cable LMR-400 equivalent NM-NM 100 ft", "url": "https://rspsupply.com/p-273-cable-lmr-400-equivalent-nm-nm-100ft.aspx", "qty": "1", "unit_price_usd": "164.49", "substitute": "Any genuine Times Microwave LMR-400 assembly of about 100 ft total, N male both ends", "status": "substitute", "last_priced": "2026-10-18", "note": "LA runs about 100 ft of LMR-400 total but the exact assembly vendor was not recorded, so the listed vendor is a substitute. Order as two runs if the arrestor sits at the wall: antenna to arrestor, arrestor to shack. Loss at 437 MHz is about 2.7 dB per 100 ft.", "purpose": "Low-loss cable from the roof to the radio.", "node": "coax", "flag": ""}, {"group": "Feedline", "item": "N-type coaxial lightning arrestor, gas discharge", "vendor": "PolyPhaser", "part": "IS-50NX-C2-MA", "url": "https://bswusa.com/polyphaser-is-50nx-c2-ma/", "qty": "1", "unit_price_usd": "82.49", "substitute": "Any N-type gas-discharge arrestor rated through 500 MHz, such as the generic unit sold by Ham Radio Outlet", "status": "substitute", "last_priced": "2026-10-18", "note": "LA uses a generic N-type arrestor from Ham Radio Outlet whose part number was not recorded, so this named part is a substitute. Bond the arrestor to the site ground; grounding provision is an open fact per site.", "purpose": "Blocks lightning surges where the cable enters the building.", "node": "arrestor", "flag": ""}, {"group": "Feedline", "item": "N female to SMA male adapter", "vendor": "Amphenol RF", "part": "242112", "url": "https://www.markertek.com/product/amph-242112/amphenol-242112-sma-male-to-n-female-adapter", "qty": "1", "unit_price_usd": "24.56", "substitute": "Any 50 ohm N female to SMA male adapter rated through 1 GHz", "status": "substitute", "last_priced": "2026-10-18", "note": "Goes between the shack end of the feedline and the GRC's SMA input. LA's exact adapter was not recorded, so this named part is a substitute. Hand-tighten only; use an SMA torque wrench if you have one.", "purpose": "Joins the thick coax to the radio's small SMA port.", "node": "adapter", "flag": ""}, {"group": "Radio", "item": "GRC: Radio Stick V2", "vendor": "PROVES (built in-house)", "part": "Radio Stick V2 (RP2350A + Ebyte E22-400M30S)", "url": "https://github.com/proveskit", "qty": "1", "unit_price_usd": "?", "substitute": "None. The GRC is the one part with no commercial equivalent; a receive station may run a Radio Stick V1.", "status": "proven", "last_priced": "2026-10-18", "note": "Proven on uplink and receive at LA (USB serial A30C2CA5609E616A). Not a catalogue part: the board is built by PROVES from the grc-radio-stick-v2 design. Ask the PROVES team for a built and flashed unit. The LoRa module alone (E22-400M30S, SX1268, +30 dBm) is about $6.40 at LCSC; the full board cost was not recorded.", "purpose": "The radio. Talks LoRa to the satellite.", "node": "grc", "flag": "proves"}, {"group": "Radio", "item": "USB-A to USB-C cable, data rated, 1 m", "vendor": "Anker", "part": "Anker USB-C to USB-A cable (3 ft)", "url": "https://www.amazon.com/dp/B07D7NRBPM", "qty": "1", "unit_price_usd": "?", "substitute": "Any data-rated USB cable", "status": "untested", "last_priced": "2026-10-18", "note": "Price not confirmed on the last-priced date; expect under $10. Charge-only cables do not enumerate the GRC.", "purpose": "Connects the radio to the Pi.", "node": "usb", "flag": "quote"}, {"group": "Site", "item": "Non-penetrating roof mount and ballast", "vendor": "(per site)", "part": "", "url": "", "qty": "1", "unit_price_usd": "0.00", "substitute": "", "status": "untested", "last_priced": "2026-10-18", "note": "A per-site civil decision, not a BOM line. LA uses a non-penetrating tripod with ballast; the roof, wind load and local code decide what you buy.", "purpose": "Holds the mast on the roof. Chosen per site.", "node": "mount", "flag": "site"}, {"group": "Commissioning", "item": "VHF/UHF digital power and SWR meter, 125 to 525 MHz", "vendor": "Mcbazel (Surecom)", "part": "SW-102", "url": "https://radioddity.com/products/surecom-sw-102-professional-uv-dual-band-lcd-digital-swr-power-meter", "qty": "1", "unit_price_usd": "79.99", "substitute": "None accepted; the operator standardised on this meter", "status": "proven", "last_priced": "2026-10-18", "note": "Uplink only. Proven at LA: 1.25 W read on the V2 2026-10-03. Operator's Amazon link is https://a.co/d/05T7MDRE; the Radioddity list price is recorded here because the Amazon page did not expose a price to the search.", "purpose": "Checks transmit power and antenna match when commissioning.", "node": "swr", "flag": ""}, {"group": "Commissioning", "item": "SMA attenuator pads, 30 dB or more total, 5 W or more", "vendor": "Mini-Circuits", "part": "BW-S30W5+ (or equivalent SMA pad set)", "url": "https://www.mouser.com/access/?pn=BW-S30W5+", "qty": "1", "unit_price_usd": "?", "substitute": "Any SMA pad set totalling 30 dB or more that handles 5 W continuous", "status": "substitute", "last_priced": "2026-10-18", "note": "Bench RF loopback for commissioning. The V2 transmits +30 dBm and the receiving GRC's absolute maximum is +10 dBm; 30 dB brings it to 0 dBm. LA's exact pads were not recorded. Price not confirmed: distributors show a 12-week lead and no live USD price; DigiKey China listed about $80 equivalent.", "purpose": "Lets the radio safely talk to a second radio on the bench.", "node": "bench", "flag": "quote"}, {"group": "Commissioning", "item": "SMA male to SMA male jumper, 0.5 m", "vendor": "Any", "part": "RG316 or RG58 SMA-SMA jumper", "url": "", "qty": "2", "unit_price_usd": "?", "substitute": "Any 50 ohm SMA jumper", "status": "untested", "last_priced": "2026-10-18", "note": "Links the pads to the GRC on the bench. Price not confirmed; expect about $8 each.", "purpose": "Bench cables for the loopback test.", "node": "bench", "flag": "quote"}], "receive": [{"group": "Compute", "item": "Raspberry Pi, 64-bit, 4 GB or more", "vendor": "Raspberry Pi", "part": "Raspberry Pi 5 8 GB", "url": "https://www.pishop.us/product/raspberry-pi-5-8gb/", "qty": "1", "unit_price_usd": "175.00", "substitute": "Pi 400 (proven at LA), Pi 4 B, Pi 500", "status": "substitute", "last_priced": "2026-10-18", "note": "Buy-new recommendation. Pi 400 is the proven unit at LA; Pi 5 is an accepted substitute. $175.00 is the pishop.us price seen on the last-priced date, far above the $80 launch MSRP because of the 2026 memory price rise. Any 64-bit Pi with 4 GB or more runs the station software. NTP time sync is a hard requirement.", "purpose": "Station computer. Runs tracking and the ground software.", "node": "pi", "flag": ""}, {"group": "Compute", "item": "Official 27 W USB-C power supply", "vendor": "Raspberry Pi", "part": "Raspberry Pi 27W USB-C Power Supply", "url": "https://www.pishop.us/product/raspberry-pi-27w-usb-c-power-supply-white-us/", "qty": "1", "unit_price_usd": "12.95", "substitute": "Any 5 V 5 A USB-C PD supply", "status": "substitute", "last_priced": "2026-10-18", "note": "Only needed with a Pi 5. The Pi 400 has its own 15 W supply. Under-powered supplies cause USB resets on the GRC.", "purpose": "Powers the Pi 5.", "node": "pi", "flag": ""}, {"group": "Compute", "item": "Official Pi 5 case with fan", "vendor": "Raspberry Pi", "part": "Raspberry Pi 5 Case (fan included)", "url": "https://www.pishop.us/product/raspberry-pi-5-case-red-white/", "qty": "1", "unit_price_usd": "10.95", "substitute": "Any case with active cooling", "status": "substitute", "last_priced": "2026-10-18", "note": "Only needed with a Pi 5. The station runs unattended; a fan keeps the Pi out of thermal throttling during long passes.", "purpose": "Keeps the Pi cool through unattended passes.", "node": "pi", "flag": ""}, {"group": "Compute", "item": "microSD card, 32 GB or more, A2", "vendor": "SanDisk", "part": "SanDisk Extreme 64 GB microSDXC", "url": "https://www.amazon.com/dp/B09X7BK27V", "qty": "1", "unit_price_usd": "?", "substitute": "Any A2-rated card 32 GB or more", "status": "untested", "last_priced": "2026-10-18", "note": "Price not confirmed on the last-priced date; expect about $12. The LA station's card model was not recorded, so this line is untested as a specific part.", "purpose": "Boot disk for the Pi.", "node": "pi", "flag": "quote"}, {"group": "Rotator", "item": "Azimuth-elevation rotator mechanism", "vendor": "Yaesu", "part": "G-5500DC", "url": "https://www.dxengineering.com/parts/ysu-g-5500dc", "qty": "1", "unit_price_usd": "969.99", "substitute": "Any mechanism that can sit behind a GS-232B controller", "status": "proven", "last_priced": "2026-10-18", "note": "Proven at LA (G-5500) and Borrego. Ships with the OEM dual controller, which the ERC Duo plugs into. 120 VAC controller. Price from DX Engineering; GigaParts lists $969.95.", "purpose": "Turns and tilts the antenna to follow the satellite.", "node": "rotator", "flag": ""}, {"group": "Rotator", "item": "Rotator computer interface, GS-232B emulation, USB serial", "vendor": "Vibroplex (WiMo design)", "part": "ERC-DUO", "url": "https://www.vibroplex.com/contents/en-us/d9204.html", "qty": "1", "unit_price_usd": "159.95", "substitute": "Any controller that speaks GS-232B over a serial port (hamlib model 603). Borrego runs the Yaesu OEM controller behind a generic GS-232B interface.", "status": "proven", "last_priced": "2026-10-18", "note": "Reference controller. Enumerates as an FTDI FT230X USB serial; the station file keys the rotator on that serial. Sold assembled only. DX Engineering lists the WiMo-branded unit at $209.99.", "purpose": "Lets the Pi drive the rotator over USB.", "node": "rotctl", "flag": ""}, {"group": "Antenna", "item": "70 cm crossed Yagi, RHCP, 8+8 elements", "vendor": "Antennas-Amplifiers", "part": "70cmCROSS16WR (70 cm LEO pack)", "url": "https://antennas-amplifiers.com/70cm-leo-pack-antenna/", "qty": "1", "unit_price_usd": "268.00", "substitute": "M2 Antennas 436CP16, $367.95 at https://m2inc.com/FG436CP16", "status": "proven", "last_priced": "2026-10-18", "note": "Proven at LA. Listed at 229.00 EUR on the vendor site; $268.00 is that figure converted at about 1.17 USD/EUR on the last-priced date. Ships from Serbia; add shipping and import duty. 13.3 dBi, N connector. Note the 436CP16 at Borrego never closed an uplink, so the M2 is accepted on the operator's word for receive and the LA substitute note only.", "purpose": "The antenna. Sends and receives the satellite signal.", "node": "antenna", "flag": "intl"}, {"group": "Feedline", "item": "LMR-400 coax, N male both ends, 100 ft", "vendor": "RSP Supply", "part": "Cable LMR-400 equivalent NM-NM 100 ft", "url": "https://rspsupply.com/p-273-cable-lmr-400-equivalent-nm-nm-100ft.aspx", "qty": "1", "unit_price_usd": "164.49", "substitute": "Any genuine Times Microwave LMR-400 assembly of about 100 ft total, N male both ends", "status": "substitute", "last_priced": "2026-10-18", "note": "LA runs about 100 ft of LMR-400 total but the exact assembly vendor was not recorded, so the listed vendor is a substitute. Order as two runs if the arrestor sits at the wall: antenna to arrestor, arrestor to shack. Loss at 437 MHz is about 2.7 dB per 100 ft.", "purpose": "Low-loss cable from the roof to the radio.", "node": "coax", "flag": ""}, {"group": "Feedline", "item": "N-type coaxial lightning arrestor, gas discharge", "vendor": "PolyPhaser", "part": "IS-50NX-C2-MA", "url": "https://bswusa.com/polyphaser-is-50nx-c2-ma/", "qty": "1", "unit_price_usd": "82.49", "substitute": "Any N-type gas-discharge arrestor rated through 500 MHz, such as the generic unit sold by Ham Radio Outlet", "status": "substitute", "last_priced": "2026-10-18", "note": "LA uses a generic N-type arrestor from Ham Radio Outlet whose part number was not recorded, so this named part is a substitute. Bond the arrestor to the site ground; grounding provision is an open fact per site.", "purpose": "Blocks lightning surges where the cable enters the building.", "node": "arrestor", "flag": ""}, {"group": "Feedline", "item": "N female to SMA male adapter", "vendor": "Amphenol RF", "part": "242112", "url": "https://www.markertek.com/product/amph-242112/amphenol-242112-sma-male-to-n-female-adapter", "qty": "1", "unit_price_usd": "24.56", "substitute": "Any 50 ohm N female to SMA male adapter rated through 1 GHz", "status": "substitute", "last_priced": "2026-10-18", "note": "Goes between the shack end of the feedline and the GRC's SMA input. LA's exact adapter was not recorded, so this named part is a substitute. Hand-tighten only; use an SMA torque wrench if you have one.", "purpose": "Joins the thick coax to the radio's small SMA port.", "node": "adapter", "flag": ""}, {"group": "Radio", "item": "GRC: Radio Stick V2", "vendor": "PROVES (built in-house)", "part": "Radio Stick V2 (RP2350A + Ebyte E22-400M30S)", "url": "https://github.com/proveskit", "qty": "1", "unit_price_usd": "?", "substitute": "None. The GRC is the one part with no commercial equivalent; a receive station may run a Radio Stick V1.", "status": "proven", "last_priced": "2026-10-18", "note": "Proven on uplink and receive at LA (USB serial A30C2CA5609E616A). Not a catalogue part: the board is built by PROVES from the grc-radio-stick-v2 design. Ask the PROVES team for a built and flashed unit. The LoRa module alone (E22-400M30S, SX1268, +30 dBm) is about $6.40 at LCSC; the full board cost was not recorded.", "purpose": "The radio. Talks LoRa to the satellite.", "node": "grc", "flag": "proves"}, {"group": "Radio", "item": "USB-A to USB-C cable, data rated, 1 m", "vendor": "Anker", "part": "Anker USB-C to USB-A cable (3 ft)", "url": "https://www.amazon.com/dp/B07D7NRBPM", "qty": "1", "unit_price_usd": "?", "substitute": "Any data-rated USB cable", "status": "untested", "last_priced": "2026-10-18", "note": "Price not confirmed on the last-priced date; expect under $10. Charge-only cables do not enumerate the GRC.", "purpose": "Connects the radio to the Pi.", "node": "usb", "flag": "quote"}, {"group": "Site", "item": "Non-penetrating roof mount and ballast", "vendor": "(per site)", "part": "", "url": "", "qty": "1", "unit_price_usd": "0.00", "substitute": "", "status": "untested", "last_priced": "2026-10-18", "note": "A per-site civil decision, not a BOM line. LA uses a non-penetrating tripod with ballast; the roof, wind load and local code decide what you buy.", "purpose": "Holds the mast on the roof. Chosen per site.", "node": "mount", "flag": "site"}], "upgrades": [{"group": "Upgrade", "item": "Mast LNA, 70 cm", "vendor": "SSB Electronic", "part": "LNA 70 (6 m to 70 cm LNA series)", "url": "https://www.wimo.com/en/ssb-electronic-lna-preamp", "qty": "1", "unit_price_usd": "264.00", "substitute": "", "status": "upgrade", "last_priced": "2026-10-18", "note": "In Borrego's receive chain on receive passes. Never on a pass that closed the uplink, so unproven for the reference. WiMo lists the LNA series from 226.00 EUR including VAT; $264.00 is that figure converted at about 1.17. Needs a TX bypass or sequencer before an uplink station may use it.", "purpose": "Boosts weak signals right at the antenna.", "node": "lna", "flag": ""}, {"group": "Upgrade", "item": "70 cm LNA kit with 1200 W T/R relays, RHCP", "vendor": "Antennas-Amplifiers", "part": "EME2-432 RHCP kit", "url": "https://antennas-amplifiers.com/?p=8817", "qty": "1", "unit_price_usd": "?", "substitute": "", "status": "upgrade", "last_priced": "2026-10-18", "note": "Owned at LA, not connected. Price not confirmed: the vendor page refused the fetch. Drive it from the Advanced Sequencer, never from an RF-sensing switch (RF review 2026-10-01).", "purpose": "Mast amplifier with relays that protect it during transmit.", "node": "lna", "flag": "quote"}, {"group": "Upgrade", "item": "Sequencer for LNA and PA switching", "vendor": "Antennas-Amplifiers", "part": "Advanced Sequencer", "url": "https://antennas-amplifiers.com/advanced-sequencer/", "qty": "1", "unit_price_usd": "345.00", "substitute": "", "status": "upgrade", "last_priced": "2026-10-18", "note": "Owned at LA, not connected. Vendor lists 295.00, EUR by the shop's currency; $345.00 is converted at about 1.17. Key it from the GRC TX_EN with at least 20 ms lead.", "purpose": "Switches the amplifier out before the radio transmits.", "node": "sequencer", "flag": "intl"}, {"group": "Upgrade", "item": "TinyGS node", "vendor": "Heltec", "part": "WiFi LoRa 32 (V3), 433 MHz variant", "url": "https://heltec.org/project/wifi-lora-32-v3/", "qty": "1", "unit_price_usd": "19.90", "substitute": "Any TinyGS-supported ESP32 LoRa board", "status": "upgrade", "last_priced": "2026-10-18", "note": "Independent receive-only reporter into the TinyGS network; useful as a second witness, not part of the GDS chain. Order the 433 MHz band variant, not 868 or 915. Vendor store lists $17.90 to $19.90.", "purpose": "Independent receiver reporting to the TinyGS network.", "node": "tinygs", "flag": ""}, {"group": "Upgrade", "item": "SDR on a splitter", "vendor": "RTL-SDR Blog", "part": "RTL-SDR Blog V4 (dipole kit)", "url": "https://www.sparkfun.com/rtl-sdr-blog-v4-usb-dongle-with-dipole-antenna-kit.html", "qty": "1", "unit_price_usd": "84.95", "substitute": "Any SDR with a TCXO", "status": "upgrade", "last_priced": "2026-10-18", "note": "RF review item 1: measures Electra's absolute frequency and levels below the decode floor. Needs a 2-way splitter in the receive line (part not chosen; a 400 MHz 2-way SMA splitter was not found in Mini-Circuits' catalogue search) and must be isolated from the TX path.", "purpose": "Measures the satellite's true frequency and weak signals.", "node": "sdr", "flag": ""}, {"group": "Upgrade", "item": "Pi 5 real-time clock battery", "vendor": "Raspberry Pi", "part": "RTC battery for Raspberry Pi 5", "url": "https://www.pishop.us/product/raspberry-pi-rtc-battery/", "qty": "1", "unit_price_usd": "5.50", "substitute": "", "status": "upgrade", "last_priced": "2026-10-18", "note": "Keeps time across a power loss until NTP returns. NTP remains the hard requirement; the battery only shortens the window where the clock is wrong.", "purpose": "Keeps the Pi's clock running through a power cut.", "node": "pi", "flag": ""}]}};
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const price = r => r.unit_price_usd === "?" ? null : +r.unit_price_usd;
+const usd = n => n == null ? "—" : "$" + n.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const FLAGS = {quote: "Get a quote", intl: "Ships from EU, add duty", proves: "Request from PROVES", site: "Site decision"};
+const flag = r => r.flag ? `<span class="flag ${r.flag}">${FLAGS[r.flag]}</span>` : "";
+const tierOf = {};
+for (const t of ["upgrades", "uplink", "receive"]) for (const r of DATA.rows[t]) tierOf[r.item] = t;
+const uplinkOnly = r => tierOf[r.item] === "uplink";
+// Shared in-memory UI state (no persistence on purpose).
+const S = {station: "receive", upgrades: false, done: new Set(), node: "grc", step: 0, open: new Set()};
+function rowsFor() {
+  return [...DATA.rows[S.station], ...(S.upgrades ? DATA.rows.upgrades : [])];
+}
+function stationControls() {
+  return `<div class="bar"><div class="seg">
+    <button data-st="receive" class="${S.station === "receive" ? "on" : ""}">Receive station</button>
+    <button data-st="uplink" class="${S.station === "uplink" ? "on" : ""}">Uplink station</button></div>
+    <label><input type="checkbox" id="upg" ${S.upgrades ? "checked" : ""}> Include recommended upgrades</label></div>`;
+}
+function wireStation(rerender) {
+  document.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { S.station = b.dataset.st; rerender(); });
+  $("#upg").onchange = e => { S.upgrades = e.target.checked; rerender(); };
+}
+
+/* ---------- A: buyer order sheet ---------- */
+function VariantA() {
+  const rows = rowsFor();
+  let groups = [...new Set(rows.map(r => r.group))];
+  let total = 0, unpriced = 0, left = 0;
+  const body = groups.map(g => `<tr class="grp"><td colspan="7">${esc(g)}</td></tr>` + rows.filter(r => r.group === g).map(r => {
+    const p = price(r), line = p == null ? null : p * +r.qty;
+    if (line == null) unpriced++; else total += line;
+    if (!S.done.has(r.item)) left++;
+    return `<tr class="${S.done.has(r.item) ? "done" : ""}">
+      <td><input type="checkbox" data-done="${esc(r.item)}" ${S.done.has(r.item) ? "checked" : ""} aria-label="Ordered"></td>
+      <td><div class="it">${esc(r.item)}</div><div class="pp">${esc(r.purpose)}</div></td>
+      <td>${r.url ? `<a href="${esc(r.url)}" target="_blank">${esc(r.part)}</a>` : esc(r.part) || "—"}<div class="pp">${esc(r.vendor)}</div></td>
+      <td class="num">${r.qty}</td><td class="num hide-sm">${usd(p)}</td><td class="num">${usd(line)}</td>
+      <td class="hide-sm">${flag(r)}${r.substitute && !r.substitute.startsWith("None") ? `<div class="pp">Substitutes OK</div>` : ""}</td></tr>`;
+  }).join("")).join("");
+  return `<div class="wrap"><h1>Ground station parts list</h1>
+    <p class="muted">Order everything below to build one ${S.station} station. Prices checked ${DATA.rows.receive[0].last_priced}; shipping and tax not included.</p>
+    ${stationControls()}
+    <table class="sheet"><thead><tr><th></th><th>Item</th><th>Buy this</th><th class="num">Qty</th><th class="num hide-sm">Unit</th><th class="num">Line</th><th class="hide-sm">Notes</th></tr></thead>
+    <tbody>${body}</tbody></table>
+    <div class="totals"><span>Known cost <b>${usd(total)}</b></span><span>${unpriced} lines need a quote</span><span>${left} of ${rows.length} still to order</span>
+    <span><button id="csv">Copy as CSV</button></span></div></div>`;
+}
+VariantA.wire = rerender => {
+  wireStation(rerender);
+  document.querySelectorAll("[data-done]").forEach(c => c.onchange = () => {
+    S.done.has(c.dataset.done) ? S.done.delete(c.dataset.done) : S.done.add(c.dataset.done); rerender();
+  });
+  $("#csv").onclick = () => navigator.clipboard.writeText(["Item,Vendor,Part,URL,Qty,Unit USD",
+    ...rowsFor().map(r => [r.item, r.vendor, r.part, r.url, r.qty, r.unit_price_usd].map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))].join("\n"));
+};
+VariantA.label = "Buyer: order sheet";
+
+/* ---------- B: buyer, one cart per vendor ---------- */
+function VariantB() {
+  const rows = rowsFor();
+  const special = rows.filter(r => r.flag === "proves" || r.flag === "site");
+  const buyable = rows.filter(r => !special.includes(r));
+  const byVendor = {};
+  for (const r of buyable) (byVendor[r.vendor] ??= []).push(r);
+  const vendors = Object.entries(byVendor).map(([v, rs]) => {
+    const known = rs.reduce((a, r) => a + (price(r) ?? 0) * +r.qty, 0);
+    return {v, rs, known, quotes: rs.filter(r => price(r) == null).length};
+  }).sort((a, b) => b.known - a.known);
+  const grand = vendors.reduce((a, x) => a + x.known, 0);
+  const cart = x => `<div class="cart"><h3><span>${esc(x.v)}</span><span class="num">${usd(x.known)}${x.quotes ? "+" : ""}</span></h3>
+    <div class="sub">${x.rs.length} item${x.rs.length > 1 ? "s" : ""}${x.quotes ? ` · ${x.quotes} need a quote` : ""}</div>
+    <ol>${x.rs.map(r => `<li><a href="${esc(r.url)}" target="_blank">${esc(r.part)}</a> × ${r.qty} <span class="num">${usd(price(r))}</span>
+      <div class="sub">${esc(r.purpose)} ${flag(r)}</div></li>`).join("")}</ol></div>`;
+  return `<div class="wrap"><h1>Buying ${S.station === "uplink" ? "an" : "a"} ${S.station} station</h1>
+    <p class="muted">One cart per store. Work through the carts, then the two items you can't buy online.</p>
+    ${stationControls()}
+    <ol class="steps"><li><b>${vendors.length} online orders</b>, about <b>${usd(grand)}</b> before shipping, tax and quoted items.</li>
+    <li><b>${special.length} items you can't add to a cart</b>: arrange these separately, they have the longest lead time.</li></ol>
+    <div class="carts">${special.map(r => `<div class="cart special"><h3><span>${esc(r.item)}</span>${flag(r)}</h3>
+      <div class="sub">${esc(r.purpose)}</div><p class="sub">${esc(r.note.split(". ").slice(0, 2).join(". "))}.</p></div>`).join("")}
+    ${vendors.map(cart).join("")}</div></div>`;
+}
+VariantB.wire = wireStation;
+VariantB.label = "Buyer: one cart per store";
+
+/* ---------- shared developer model: nodes + links (prototype-only, would become data) ---------- */
+const NODES = {
+  antenna: {x: 150, y: 70, label: "Antenna", sub: "70 cm crossed Yagi", ic: "📡",
+    role: "Collects the satellite's 437 MHz signal and radiates the uplink. Circular polarisation means the satellite's tumble doesn't fade the link."},
+  lna: {x: 150, y: 165, label: "Mast LNA", sub: "upgrade", ic: "🔊",
+    role: "Amplifies the weak downlink before cable loss eats it. Must be switched out before transmit or the uplink destroys it."},
+  rotator: {x: 450, y: 70, label: "Rotator", sub: "az/el drive", ic: "🧭",
+    role: "Physically points the antenna along the pass. Tracking error costs dB; this is what keeps a 13 dBi beam on target."},
+  mount: {x: 450, y: 165, label: "Roof mount", sub: "per site", ic: "🏗️",
+    role: "Holds mast, rotator and antenna against wind. A civil decision per site, not a catalogue part."},
+  tinygs: {x: 870, y: 70, label: "TinyGS node", sub: "upgrade · standalone", ic: "🛰️",
+    role: "A separate cheap receiver with its own antenna. Reports to TinyGS, a second witness that the satellite is alive. Not in the GDS chain."},
+  coax: {x: 150, y: 270, label: "Coax", sub: "LMR-400 · ~2.7 dB", ic: "〰️",
+    role: "Carries RF between roof and shack. Its ~2.7 dB loss per 100 ft is the biggest passive loss in the link budget."},
+  arrestor: {x: 370, y: 270, label: "Lightning arrestor", sub: "at building entry", ic: "⚡",
+    role: "Shunts surges to ground where the coax enters the building, so a strike on the mast doesn't reach the radio or the Pi."},
+  adapter: {x: 370, y: 360, label: "N→SMA adapter", sub: "", ic: "🔩",
+    role: "Bridges the feedline's N connector to the GRC's SMA port."},
+  swr: {x: 370, y: 455, label: "SWR meter", sub: "commissioning", ic: "📏",
+    role: "Inserted inline once at commissioning to prove the GRC puts out ~1 W and the antenna is matched. Removed afterwards."},
+  grc: {x: 590, y: 360, label: "GRC", sub: "Radio Stick V2", ic: "📻",
+    role: "Ground Radio Controller: the LoRa transceiver (SX1268, +30 dBm). Frames go to and from the Pi over USB serial. The only part with no commercial equivalent."},
+  sequencer: {x: 150, y: 360, label: "Sequencer", sub: "upgrade", ic: "⏱️",
+    role: "Keyed from the GRC's TX_EN, it switches the LNA out at least 20 ms before RF leaves the radio."},
+  usb: {x: 770, y: 360, label: "USB cable", sub: "data-rated", ic: "🔌",
+    role: "Serial link and power for the GRC. A charge-only cable is the classic 'radio never enumerates' failure."},
+  pi: {x: 930, y: 360, label: "Raspberry Pi", sub: "station computer", ic: "🖥️",
+    role: "Runs tracking (rotator commands), the GDS and the mission pack. NTP time sync is a hard requirement: bad time means bad pointing."},
+  rotctl: {x: 930, y: 250, label: "Rotator interface", sub: "ERC-DUO · GS-232B", ic: "🎛️",
+    role: "Translates GS-232B commands from the Pi (hamlib model 603) into drive for the rotator's controller."},
+  sdr: {x: 770, y: 455, label: "SDR", sub: "upgrade · on splitter", ic: "📈",
+    role: "Taps the receive line to measure the satellite's true frequency and signals below the LoRa decode floor."},
+  bench: {x: 590, y: 570, label: "Bench loopback", sub: "attenuators + jumpers", ic: "🧪",
+    role: "Commissioning only: a second GRC behind 30 dB of pads proves a frame decodes without anything on the roof."},
+};
+// [from, to, kind, waypoints]
+const LINKS = [
+  ["antenna", "coax", "rf"], ["coax", "arrestor", "rf"], ["arrestor", "adapter", "rf"], ["adapter", "grc", "rf"],
+  ["adapter", "swr", "rf"], ["swr", "grc", "rf", [[480, 455], [480, 360]]],
+  ["adapter", "sdr", "rf"], ["grc", "bench", "rf"],
+  ["grc", "usb", "data"], ["usb", "pi", "data"], ["pi", "rotctl", "data"], ["sdr", "pi", "data"],
+  ["rotctl", "rotator", "ctl"], ["grc", "sequencer", "ctl", [[590, 410], [150, 410]]],
+  ["sequencer", "lna", "ctl", [[40, 360], [40, 165]]],
+  ["mount", "rotator", "mech"], ["rotator", "antenna", "mech"],
+];
+const KIND = {rf: ["RF signal", "--rf"], data: ["USB data", "--data"], ctl: ["Control", "--ctl"], mech: ["Mechanical", "--mech"]};
+const itemsOf = id => ["receive", "uplink", "upgrades"].flatMap(t => DATA.rows[t]).filter((r, i, a) => r.node === id && a.findIndex(x => x.item === r.item) === i);
+const nodeLive = id => { const set = new Set(rowsFor().map(r => r.item)); return itemsOf(id).some(r => set.has(r.item)); };
+
+/* ---------- C: interactive system map ---------- */
+S.kinds = new Set(Object.keys(KIND));
+function VariantC() {
+  const sel = NODES[S.node];
+  const pts = l => [[NODES[l[0]].x, NODES[l[0]].y], ...(l[3] || []), [NODES[l[1]].x, NODES[l[1]].y]];
+  const edges = LINKS.map(l => {
+    const ghost = !nodeLive(l[0]) || !nodeLive(l[1]) || !S.kinds.has(l[2]);
+    const hot = l[0] === S.node || l[1] === S.node;
+    return `<polyline class="edge ${l[2]} ${ghost ? "ghost" : hot ? "hot" : "dim"}" points="${pts(l).map(p => p.join(",")).join(" ")}"/>`;
+  }).join("");
+  const neighbours = new Set(LINKS.filter(l => l[0] === S.node || l[1] === S.node).flatMap(l => [l[0], l[1]]));
+  const nodes = Object.entries(NODES).map(([id, n]) => {
+    const cls = !nodeLive(id) ? "ghost" : id === S.node ? "sel" : neighbours.has(id) ? "" : "dim";
+    return `<g class="node ${cls}" data-node="${id}" transform="translate(${n.x - 75},${n.y - 26})">
+      <rect width="150" height="52"/><text x="75" y="${n.sub ? 19 : 26}">${n.ic} ${esc(n.label)}</text>
+      ${n.sub ? `<text class="sub" x="75" y="37">${esc(n.sub)}</text>` : ""}</g>`;
+  }).join("");
+  const conns = LINKS.filter(l => l[0] === S.node || l[1] === S.node).map(l => {
+    const other = l[0] === S.node ? l[1] : l[0];
+    return `<li style="--c:var(${KIND[l[2]][1]})">${KIND[l[2]][0]} ${l[0] === S.node ? "to" : "from"} <a href="#" data-goto="${other}">${esc(NODES[other].label)}</a></li>`;
+  }).join("");
+  const parts = itemsOf(S.node).map(r => `<div class="part">
+    <div class="row"><b>${esc(r.part || r.item)}</b><span class="num">${usd(price(r))}${+r.qty > 1 ? ` ×${r.qty}` : ""}</span></div>
+    <div class="row"><span class="muted">${esc(r.vendor)}</span><span class="st ${r.status}">${r.status}${tierOf[r.item] !== "receive" ? ` · ${tierOf[r.item]}` : ""}</span></div>
+    ${r.substitute ? `<div class="muted" style="font-size:.85rem">Alt: ${esc(r.substitute)}</div>` : ""}
+    <details><summary>Field notes</summary>${esc(r.note)}${r.url ? ` <a href="${esc(r.url)}" target="_blank">Vendor page</a>` : ""}</details></div>`).join("");
+  const band = (y, h, name, v) => `<rect x="0" y="${y}" width="1060" height="${h}" fill="var(${v})"/><text class="zone" x="1048" y="${y + 18}" text-anchor="end">${name}</text>`;
+  return `<div class="wrap"><h1>How the station fits together</h1>
+    <p class="muted">Click any block. Faded blocks aren't part of the station you've picked.</p>
+    ${stationControls()}
+    <div class="legend">${Object.entries(KIND).map(([k, [n, v]]) => `<label><input type="checkbox" data-kind="${k}" ${S.kinds.has(k) ? "checked" : ""}><span style="--c:var(${v})">${n}</span></label>`).join("")}</div>
+    <div class="map"><svg viewBox="0 0 1060 630" role="img" aria-label="Station block diagram">
+      ${band(0, 220, "Roof", "--roof")}${band(220, 80, "Building entry", "--entry")}${band(300, 220, "Shack", "--shack")}${band(520, 110, "Bench · commissioning", "--bench")}
+      ${edges}${nodes}</svg>
+    <aside class="inspector"><div class="muted" style="font-size:.8rem">${sel.ic} SELECTED</div><h2>${esc(sel.label)}</h2>
+      <p>${esc(sel.role)}</p><ul class="conn">${conns}</ul>${parts || `<p class="muted">No parts.</p>`}
+      <p class="muted" style="font-size:.85rem">Block cost: ${usd(itemsOf(S.node).reduce((a, r) => a + (price(r) ?? 0) * +r.qty, 0))}</p></aside></div></div>`;
+}
+VariantC.wire = rerender => {
+  wireStation(rerender);
+  document.querySelectorAll("[data-node]").forEach(g => g.onclick = () => { S.node = g.dataset.node; rerender(); });
+  document.querySelectorAll("[data-goto]").forEach(a => a.onclick = e => { e.preventDefault(); S.node = a.dataset.goto; rerender(); });
+  document.querySelectorAll("[data-kind]").forEach(c => c.onchange = () => { c.checked ? S.kinds.add(c.dataset.kind) : S.kinds.delete(c.dataset.kind); rerender(); });
+};
+VariantC.label = "Developer: system map";
+
+/* ---------- D: trace a pass, stage by stage ---------- */
+const STACK = ["sat", "antenna", "lna", "coax", "arrestor", "adapter", "swr", "grc", "sequencer", "usb", "pi", "rotctl", "rotator", "mount", "bench", "sdr", "tinygs"];
+const SAT = {label: "Satellite", sub: "Electra, ~437 MHz LoRa", ic: "🛰️", role: "The other end of the link."};
+const STEPS = [
+  {phase: "Overview", title: "The whole station", lit: STACK, dir: {},
+    text: "Every block a station can have, from the sky down to the computer. Step through a pass to see which parts work when, and why each one is there."},
+  {phase: "T−10 min", title: "Get ready", lit: ["pi"], dir: {},
+    text: "The Pi checks NTP time and predicts the pass from the TLE. Time is a hard requirement: a few seconds wrong means the antenna points at empty sky."},
+  {phase: "AOS", title: "Point at the horizon", lit: ["pi", "rotctl", "rotator", "mount", "antenna"], dir: {pi: "down", rotctl: "down", rotator: "up"},
+    text: "The Pi sends GS-232B commands to the rotator interface, which drives the rotator. The antenna swings to where the satellite will rise."},
+  {phase: "Downlink", title: "Hear the satellite", lit: ["sat", "antenna", "lna", "coax", "arrestor", "adapter", "grc", "usb", "pi", "sdr"], dir: {sat: "down", antenna: "down", lna: "down", coax: "down", arrestor: "down", adapter: "down", grc: "down", usb: "down"},
+    text: "The satellite's signal enters the antenna, loses ~2.7 dB in the coax, passes the arrestor and reaches the GRC, which decodes LoRa frames and hands them to the Pi over USB. With upgrades, the LNA boosts it at the mast and an SDR watches the same line."},
+  {phase: "Uplink", title: "Send a command", lit: ["pi", "usb", "grc", "sequencer", "lna", "adapter", "swr", "arrestor", "coax", "antenna", "sat"], dir: {pi: "up", usb: "up", grc: "up", adapter: "up", arrestor: "up", coax: "up", antenna: "up"},
+    text: "Uplink stations only. The Pi signs a command with the mission key; the GRC transmits at +30 dBm back up the same cable. If an LNA is fitted, the sequencer must pull it out of line first."},
+  {phase: "LOS", title: "Park", lit: ["pi", "rotctl", "rotator"], dir: {pi: "down", rotctl: "down"},
+    text: "The satellite sets. The Pi parks the rotator and stores the pass log."},
+  {phase: "Once, at setup", title: "Commission the station", lit: ["grc", "bench", "swr", "rotator", "pi"], dir: {},
+    text: "Before the first real pass: a bench loopback through 30 dB of pads proves a frame decodes, the SWR meter proves the radio's power, and the rotator sweeps its full range."},
+];
+function VariantD() {
+  const st = STEPS[S.step];
+  const live = new Set(rowsFor().map(r => r.item));
+  const html = STACK.map((id, i) => {
+    const n = id === "sat" ? SAT : NODES[id];
+    const its = id === "sat" ? [] : itemsOf(id);
+    const inStation = id === "sat" || its.some(r => live.has(r.item));
+    if (!inStation) return "";
+    const lit = st.lit.includes(id);
+    const cost = its.filter(r => live.has(r.item)).reduce((a, r) => a + (price(r) ?? 0) * +r.qty, 0);
+    const d = st.dir[id];
+    const arrow = i < STACK.length - 1 ? `<div class="arrow ${d || ""}">${d === "down" ? "▼" : d === "up" ? "▲" : "·"}</div>` : "";
+    return `<div class="stage ${lit ? "lit" : "off"} ${id === "sat" ? "sat" : ""} ${S.open.has(id) ? "open" : ""}" data-stage="${id}">
+      <div class="ic">${n.ic}</div><div><div class="nm">${esc(n.label)}</div><div class="pt">${esc(its.filter(r => live.has(r.item)).map(r => r.part || r.item).join(" · ") || n.sub)}</div></div>
+      <div class="num">${id === "sat" ? "" : usd(cost)}</div>
+      <div class="more">${esc(n.role)}${its.filter(r => live.has(r.item)).map(r => `<div style="margin-top:.4rem"><span class="st ${r.status}">${r.status}</span> ${esc(r.item)}: ${esc(r.note)}</div>`).join("")}</div></div>${arrow}`;
+  }).join("");
+  return `<div class="wrap"><h1>Follow a pass through the station</h1>${stationControls()}
+    <div class="trace"><div class="story"><div class="phase">${st.phase} · ${S.step + 1}/${STEPS.length}</div><h2>${st.title}</h2><p>${st.text}</p>
+      <div class="nav"><button id="back" ${S.step ? "" : "disabled"}>Back</button><button id="fwd" ${S.step < STEPS.length - 1 ? "" : "disabled"}>Next</button></div>
+      <div class="dots">${STEPS.map((s, i) => `<button class="${i === S.step ? "on" : ""}" data-step="${i}" title="${s.title}"></button>`).join("")}</div>
+      <p class="muted" style="font-size:.85rem;margin-top:1rem">Tap a block for what it does and its field notes. Space / Enter steps forward.</p></div>
+    <div class="stack">${html}</div></div></div>`;
+}
+VariantD.wire = rerender => {
+  wireStation(rerender);
+  $("#back").onclick = () => { S.step--; rerender(); };
+  $("#fwd").onclick = () => { S.step++; rerender(); };
+  document.querySelectorAll("[data-step]").forEach(b => b.onclick = () => { S.step = +b.dataset.step; rerender(); });
+  document.querySelectorAll("[data-stage]").forEach(s => s.onclick = () => { const id = s.dataset.stage; S.open.has(id) ? S.open.delete(id) : S.open.add(id); rerender(); });
+};
+VariantD.label = "Developer: trace a pass";
+document.addEventListener("keydown", e => {
+  if (variant() !== "D" || e.target.closest("input,textarea,[contenteditable],button")) return;
+  if (e.key === " " || e.key === "Enter") { e.preventDefault(); S.step = Math.min(S.step + 1, STEPS.length - 1); draw(); }
+});
+
+/* ---------- switcher ---------- */
+const VARIANTS = {A: VariantA, B: VariantB, C: VariantC, D: VariantD};
+const KEYS = Object.keys(VARIANTS);
+let current = new URLSearchParams(location.search).get("variant");
+if (!KEYS.includes(current)) current = "A";
+const variant = () => current;
+function draw() {
+  const v = variant(), V = VARIANTS[v];
+  $("#app").innerHTML = V();
+  V.wire(draw);
+  $("#vlabel").textContent = `${v} (${V.label})`;
+  console.log("[prototype] variant", v, {station: S.station, upgrades: S.upgrades, node: S.node, step: S.step, ordered: [...S.done]});
+}
+function go(d) {
+  current = KEYS[(KEYS.indexOf(current) + d + KEYS.length) % KEYS.length];
+  const u = new URL(location.href); u.searchParams.set("variant", current);
+  try { history.replaceState(null, "", u); } catch {} // some browsers refuse on file://
+  scrollTo(0, 0); draw();
+}
+$("#prev").onclick = () => go(-1);
+$("#next").onclick = () => go(1);
+document.addEventListener("keydown", e => {
+  if (e.target.closest("input,textarea,[contenteditable]")) return;
+  if (e.key === "ArrowLeft") go(-1);
+  if (e.key === "ArrowRight") go(1);
+});
+draw();
+</script>
+</body></html>
