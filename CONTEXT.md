@@ -45,8 +45,30 @@ Everything in a station kit that is the same for every mission: hardware, operat
 _Avoid_: base, platform, infrastructure
 
 **Mission layer**:
-Everything in a station kit that changes per satellite: flight dictionary, GDS framing plugin, key handling, TLE source.
+Everything in a station kit that changes per satellite. A mission pack is its concrete form.
 _Avoid_: payload, satellite config
+
+**Mission pack**:
+The bundle a station installs for one satellite: flight dictionary commit, GDS framing plugin, key-handoff procedure, NORAD ID and TLE source. It never carries hardware.
+_Avoid_: mission bundle, payload, satellite config
+
+**Station file**:
+The one `station.toml` that describes a ground station: identity, coordinates, callsign, RF chain, rotator, GRCs. It replaces the executor JSON, the kit site TOML and the rotator TOML.
+_Avoid_: site config, station JSON, inventory (for this file)
+
+**Accepted substitute**:
+A part that may replace a reference-design part without re-proving the design, listed on the same BOM line.
+_Avoid_: alternative, equivalent, option
+
+### Lifecycle
+
+**Provisioned**:
+The state of a station whose playbook has converged and whose preflight passes against the software manifest. Software is in place; nothing has been proven over RF.
+_Avoid_: installed, set up, deployed
+
+**Commissioned**:
+The state of a provisioned station that has passed the acceptance check: bench RF loopback decodes a frame, the rotator sweeps its full range and homes, time is synced, and coordinates are verified against a GPS fix.
+_Avoid_: ready, operational, validated, live
 
 ### Hardware
 
