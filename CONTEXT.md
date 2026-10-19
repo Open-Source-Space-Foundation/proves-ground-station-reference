@@ -37,8 +37,12 @@ A ground station that can command the satellite: TX-capable GRC, rotator, power 
 _Avoid_: TX station, primary station, full station
 
 **Receive station**:
-A ground station that only receives: RX GRC and rotator, no key on the host. Its hardware is a strict subset of the uplink station's.
+A ground station that only receives: no key on the host and no commissioning TX checks. It is built from the same hardware BOM as an uplink station; the role, not a parts list, sets it apart.
 _Avoid_: RX station, feedback station, listening station, secondary station
+
+**Antenna configuration**:
+The shape of a station's RF hardware, and the `config` column of the hardware BOM. *Single-antenna*: one antenna transmits and receives, as at LA. *Split TX/RX*: separate TX and RX antennas, feedlines and GRCs on one rotator via a fiberglass cross-boom, as at Borrego. A BOM line belongs to one configuration or to both.
+_Avoid_: variant, layout, station type
 
 **Station layer**:
 Everything in a station kit that is the same for every mission: hardware, operating system, rotator chain, tracking tools.
@@ -65,7 +69,7 @@ The `status` column of a hardware BOM line, one of four values. `proven`: the na
 _Avoid_: state, tier, grade
 
 **Commissioning kit**:
-The bench gear an uplink station needs only to pass the acceptance check: the power meter, the attenuator pad and the SMA jumpers. A receive station does not need it.
+The bench gear an uplink station needs only to pass the acceptance check: the power meter and its N-to-SMA jumper, the attenuator pad and the SMA jumpers. A receive station does not need it.
 _Avoid_: test kit, bench attenuation, tools
 
 ### Lifecycle
