@@ -195,6 +195,9 @@ def merged(rows):
             m = out[key]
             m["qty"] = str(int(m["qty"]) + int(r["qty"]))
             m["purpose"] = m["purpose"].rstrip() + " One each for TX and RX."
+            # An RX note usually restates the TX note after an RX-only preamble; keep the longer, else both.
+            if r["note"] not in m["note"]:
+                m["note"] = r["note"] if m["note"] in r["note"] else f"{m['note']} {r['note']}"
         else:
             out[key] = dict(r, item=re.sub(r" \(RX\)$", "", r["item"]))
     return list(out.values())
