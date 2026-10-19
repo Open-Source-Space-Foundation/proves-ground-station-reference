@@ -71,13 +71,15 @@ def check_topology(topo):
                     sys.exit(f"topology.json: {cfg} link {link[:2]} names {b!r}, which has no {cfg} position")
 
 
-def check_unique(*files):
-    seen = set()
-    for rows in files:
+def check_unique(files):
+    """files: {csv name: rows}. Item names key rf_chains.csv, so they must be unique across both lists."""
+    seen = {}
+    for name, rows in files.items():
         for r in rows:
             if r["item"] in seen:
-                sys.exit(f"item {r['item']!r} appears more than once across reference.csv and upgrades.csv")
-            seen.add(r["item"])
+                where = f"more than once in {name}" if seen[r["item"]] == name else f"in both {seen[r['item']]} and {name}"
+                sys.exit(f"item {r['item']!r} appears {where}")
+            seen[r["item"]] = name
 
 
 def mates(out, inp):
@@ -207,7 +209,7 @@ def main():
     topo = json.loads((BOM / "topology.json").read_text())
     check_topology(topo)
     ref, upg = load("reference", topo), load("upgrades", topo)
-    check_unique(ref, upg)
+    check_unique({"reference.csv": ref, "upgrades.csv": upg})
     chains = load_chains({r["item"]: r for r in ref})
     (ROOT / "docs" / "bom.md").write_text(render_md(ref, upg, chains))
     (ROOT / "docs" / "bom.html").write_text(render_html(ref, upg, topo))
