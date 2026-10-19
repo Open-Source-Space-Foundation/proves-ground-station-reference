@@ -25,6 +25,7 @@ URL = re.compile(r"https?://\S+")
 CHAIN_COLS = ["config", "chain", "item", "in", "out"]
 CHAINS = [("single", "tx"), ("single", "tx-swr"), ("split", "tx"), ("split", "tx-swr"), ("split", "rx"), ("all", "bench")]
 CONNECTORS = {"", "N-m", "N-f", "SMA-m", "SMA-f"}
+LINK_KINDS = {"rf", "data", "ctl", "mech"}
 RF_BLOCKS = {"antenna", "antenna_rx", "lna", "coax", "coax_rx", "arrestor", "arrestor_rx", "adapter", "adapter_rx",
              "grc", "grc_rx", "swr", "bench"}
 # Parts that sit in an RF block on the map but carry no RF, so they join no chain: the LNA's DC feed.
@@ -62,16 +63,44 @@ def load(name, topo):
     return rows
 
 
+def is_point(p):
+    return isinstance(p, list) and len(p) == 2 and all(isinstance(v, (int, float)) for v in p)
+
+
 def check_topology(topo):
+    """Everything bom.template.html reads from topology.json, so a broken file fails here, not in the page."""
+    for key in ("blocks", "positions", "links", "bands"):
+        if not isinstance(topo.get(key), dict):
+            sys.exit(f"topology.json: {key!r} is missing or not an object")
     for cfg in CONFIGS:
+        for key in ("positions", "links", "bands"):
+            if cfg not in topo[key]:
+                sys.exit(f"topology.json: {key} has no entry for config {cfg}")
+        bands = topo["bands"][cfg]
+        for band in bands:
+            if not (isinstance(band, list) and len(band) == 4 and is_point(band[:2])
+                    and isinstance(band[2], str) and str(band[3]).startswith("--")):
+                sys.exit(f"topology.json: {cfg} band {band!r} must be [y, height, name, \"--css-var\"]")
         pos = topo["positions"][cfg]
-        for b in pos:
+        for b, p in pos.items():
             if b not in topo["blocks"]:
                 sys.exit(f"topology.json: {cfg} positions block {b!r} that has no entry in blocks")
+            if not is_point(p):
+                sys.exit(f"topology.json: {cfg} position of {b!r} is {p!r}, not [x, y]")
+            if not any(y <= p[1] < y + h for y, h, *_ in bands):
+                sys.exit(f"topology.json: {cfg} position of {b!r} has y {p[1]}, outside every {cfg} band")
+            block = {**topo["blocks"][b], **(topo["blocks"][b].get(cfg) or {})}
+            for field in ("label", "ic", "role"):
+                if not isinstance(block.get(field), str) or not block[field]:
+                    sys.exit(f"topology.json: block {b!r} has no {field} for config {cfg}")
         for link in topo["links"][cfg]:
             for b in link[:2]:
                 if b not in pos:
                     sys.exit(f"topology.json: {cfg} link {link[:2]} names {b!r}, which has no {cfg} position")
+            if len(link) < 3 or link[2] not in LINK_KINDS:
+                sys.exit(f"topology.json: {cfg} link {link[:2]} kind must be one of {sorted(LINK_KINDS)}")
+            if len(link) > 3 and not all(is_point(p) for p in link[3]):
+                sys.exit(f"topology.json: {cfg} link {link[:2]} waypoints must be [x, y] pairs")
 
 
 def check_serials(files):

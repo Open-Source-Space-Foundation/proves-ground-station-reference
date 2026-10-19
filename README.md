@@ -21,6 +21,7 @@ The script uses only the standard library and prints one summary line per config
 - a `status`, `config` or `flag` value is outside its set, a `qty` is not an integer, or a price is neither a number nor `?`;
 - an item name appears twice in `reference.csv` and `upgrades.csv` taken together;
 - a line's `block` has no position in `topology.json` for a configuration the line belongs to;
+- `topology.json` lacks positions, links or bands for a configuration, a block lacks a label, icon or role, a position is not an `[x, y]` pair inside one of that configuration's bands, or a link names an unpositioned block or an unknown kind;
 - an item, purpose, substitute or note carries what looks like a device serial number, in either case, that is not some row's part number;
 - a chain in `rf_chains.csv` is missing, names an item outside its configuration, or has a junction where one part's out connector does not mate the next part's in connector (same family, N or SMA, opposite gender);
 - a `reference.csv` row in an RF block (antenna, LNA, coax, arrestor, adapter, GRC, SWR meter, bench, and their RX twins) is in no chain of a configuration it belongs to, unless `render.py` lists it in `NOT_RF`.
