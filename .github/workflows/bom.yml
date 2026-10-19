@@ -1,0 +1,55 @@
+name: BOM
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Render the BOM
+        run: python3 -I bom/render.py
+      - name: Fail if the committed output is stale
+        run: git diff --exit-code docs/bom.md docs/bom.html
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Render the BOM
+        run: python3 -I bom/render.py
+      - name: Assemble the site
+        run: |
+          mkdir _site
+          cp docs/bom.html _site/index.html
+          cp bom/reference.csv bom/upgrades.csv bom/rf_chains.csv _site/
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v5.0.1

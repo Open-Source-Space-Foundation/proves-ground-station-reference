@@ -27,3 +27,7 @@ The script uses only the standard library and prints one summary line per config
 - a `reference.csv` row in an RF block (antenna, LNA, coax, arrestor, adapter, GRC, SWR meter, bench, and their RX twins) is in no chain of a configuration it belongs to, unless `render.py` lists it in `NOT_RF`.
 
 `docs/bom.html` has three views: an order sheet for buyers, a clickable system map and a pass trace for developers. `?view=order`, `?view=map` and `?view=trace` open each one.
+
+The live page is at <https://open-source-space-foundation.github.io/proves-ground-station-reference/>. The `BOM` workflow (`.github/workflows/bom.yml`) builds and deploys it on each push to `main`. The site holds only the rendered page and the three CSVs, so `reference.csv`, `upgrades.csv` and `rf_chains.csv` each have a stable URL next to the page. The page's "Download CSV" link points at the served `reference.csv`. It resolves on the site; when you open `docs/bom.html` locally, the CSV is in `bom/`.
+
+CI fails a pull request whose committed `docs/bom.md` or `docs/bom.html` differs from a fresh render, or whose CSVs fail one of the checks above. Run `python3 -I bom/render.py` and commit its output with your CSV change.

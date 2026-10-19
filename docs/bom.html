@@ -4,6 +4,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>PROVES ground station hardware BOM</title>
+<meta name="description" content="Hardware bill of materials for a PROVES ground station: what to buy, what it costs, and how the RF chain fits together.">
 <style>
 :root{--bg:#fbfaf7;--panel:#fff;--fg:#1b1b1b;--muted:#646464;--line:#dedbd3;--head:#f1efe9;--link:#0b57d0;
 --rf:#d9480f;--data:#1c7ed6;--ctl:#7048e8;--mech:#868e96;--ok:#2b8a3e;--warn:#a46b00;--up:#1c7ed6;--un:#c2410c;
@@ -162,13 +163,15 @@ function OrderSheet() {
   const note = S.cfg === "split" ? `<div class="splitnote"><b>Split TX / RX</b> uses one antenna, cable run and radio for transmit and a second set for receive, on one rotator.
     Compared with the single antenna, it swaps the end-mounted Yagi and aluminium tube for two M2 Yagis on a fiberglass cross-boom (Borrego center-mounts both), and adds a second pair of coax runs, arrestor, adapter, GRC and USB cable.
     The mast LNA becomes a standard part with its own 12 V line, and the sequencer and T/R relay kit are no longer needed. Known cost goes up by ${usd(cost(ref("split")) - cost(ref("single")))}.</div>` : "";
+  const dates = rows.map(r => r.last_priced).filter(Boolean).sort();
+  const checked = dates[0] === dates.at(-1) ? dates[0] : `between ${dates[0]} and ${dates.at(-1)}`;
   return `<h2 class="view">Everything to build one station</h2>
-    <p class="muted">Prices checked on each line's last-priced date; shipping and tax not included.</p>
+    <p class="muted">Prices last checked ${checked}; shipping and tax not included.</p>
     ${controls()}${note}
     <div class="sheet-scroll"><table class="sheet"><thead><tr><th></th><th>Item</th><th>Buy this</th><th class="num">Qty</th><th class="num hide-sm">Unit</th><th class="num">Line</th><th class="hide-sm">Notes</th></tr></thead>
     <tbody>${body}</tbody></table></div>
     <div class="totals" id="totals"><span>Known cost <b>${usd(total)}</b></span><span>${unpriced} lines need a quote</span><span>${left} of ${rows.length} still to order</span>
-    <span><button id="csv">Copy as CSV</button></span></div>`;
+    <span><button id="csv">Copy as CSV</button> <a href="reference.csv" download>Download CSV</a></span></div>`;
 }
 OrderSheet.wire = () => {
   document.querySelectorAll("[data-done]").forEach(c => c.onchange = () => {
