@@ -51,11 +51,11 @@ RF_CHAIN = {"antenna", "coax", "arrestor", "adapter", "grc", "usb"}
 SPLIT_DROPS = {"70 cm LNA kit with 1200 W T/R relays, RHCP", "Sequencer for LNA and PA switching"}
 ROW = {"substitute": "", "last_priced": "2026-10-19", "qty": "1", "flag": ""}
 LA_BOOM = dict(ROW, group="Rotator", item="Antenna boom, end-mount", vendor="McMaster-Carr",
-    part="Multipurpose 6061 aluminum round tube, 1-1/2 in OD, 1/8 in wall, 6 ft",
-    url="https://www.mcmaster.com/framing/multipurpose-6061-aluminum-round-tubes/", unit_price_usd="?",
-    status="proven", flag="quote", node="rotator", purpose="Holds the antenna in the rotator's elevation clamp.",
+    part="9056K38, 6 ft (6061-T6 round tube, 1-1/2 in OD, 1/8 in wall)",
+    url="https://www.mcmaster.com/9056K38/", unit_price_usd="83.46",
+    status="proven", node="rotator", purpose="Holds the antenna in the rotator's elevation clamp.",
     note="LA's Yagi is end-mounted, so it hangs off a metal tube clamped in the rotator, clear of the elements. "
-         "McMaster part number and price not recorded.")
+         "9056K38 covers every length; choose 6 ft when ordering.")
 CROSSBOOM = dict(ROW, group="Rotator", item="Fiberglass cross-boom for two antennas", vendor="M2 Antenna Systems",
     part="FGCB60 (CROSSBOOM, HD FG 11 ft)", url="https://www.m2inc.com/FGCB60", unit_price_usd="389.99",
     status="proven", node="rotator",
