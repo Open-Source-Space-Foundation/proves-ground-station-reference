@@ -25,6 +25,10 @@ URL = re.compile(r"https?://\S+")
 CHAIN_COLS = ["config", "chain", "item", "in", "out"]
 CHAINS = [("single", "tx"), ("single", "tx-swr"), ("split", "tx"), ("split", "tx-swr"), ("split", "rx"), ("all", "bench")]
 CONNECTORS = {"", "N-m", "N-f", "SMA-m", "SMA-f"}
+RF_BLOCKS = {"antenna", "antenna_rx", "lna", "coax", "coax_rx", "arrestor", "arrestor_rx", "adapter", "adapter_rx",
+             "grc", "grc_rx", "swr", "bench"}
+# Parts that sit in an RF block on the map but carry no RF, so they join no chain: the LNA's DC feed.
+NOT_RF = {"12 V DC supply for the mast LNA", "DC cable, shack to mast LNA, outdoor rated"}
 
 
 def in_config(r, cfg):
@@ -128,6 +132,17 @@ def load_chains(items):
         for a, b in zip(path, path[1:]):
             if not mates(a["out"], b["in"]):
                 sys.exit(f'{name}: "{a["item"]}" out {a["out"] or "(none)"} does not mate "{b["item"]}" in {b["in"] or "(none)"}')
+    for it in NOT_RF:
+        if it not in items or items[it]["block"] not in RF_BLOCKS:
+            sys.exit(f"render.py: NOT_RF names {it!r}, which is not a reference.csv row in an RF block; drop it from NOT_RF")
+    chained = {(r["item"], cfg) for (c, _), path in chains.items() for r in path for cfg in (list(CONFIGS) if c == "all" else [c])}
+    for it, r in items.items():
+        if r["block"] not in RF_BLOCKS or it in NOT_RF:
+            continue
+        for cfg in configs_of(r):
+            if (it, cfg) not in chained:
+                sys.exit(f"reference.csv: {it!r} is in RF block {r['block']!r} but in no {cfg} chain of rf_chains.csv; "
+                         "add it to its RF path with its connectors")
     return chains
 
 

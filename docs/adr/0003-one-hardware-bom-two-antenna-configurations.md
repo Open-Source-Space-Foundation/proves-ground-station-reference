@@ -13,5 +13,5 @@ The BOM also states how the parts connect. `bom/rf_chains.csv` lists every RF pa
 ## Consequences
 
 - A builder picks a configuration and orders one list. The order sheet merges the TX and RX copies of a shared part into one line.
-- Adding a part to an RF path means adding it to `rf_chains.csv` with its connectors, or the render fails.
+- Adding a part to an RF path means adding it to `rf_chains.csv` with its connectors, or the render fails: every `reference.csv` row in an RF block must appear in a chain of each configuration it belongs to. The only exceptions are the rows `render.py` names in `NOT_RF`, the LNA's DC supply and cable, which share the LNA's block but carry no RF.
 - A split station's uplink claim waits on a pass log, the same as any other part under ADR 0001.
