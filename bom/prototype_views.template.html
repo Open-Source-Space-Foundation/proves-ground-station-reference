@@ -165,7 +165,7 @@ function VariantA() {
   }).join("")).join("");
   const single = cost(DATA.configs.single), split = cost(DATA.configs.split);
   const note = S.cfg === "split" ? `<div class="splitnote"><b>Split TX / RX</b> uses one antenna, cable run and radio for transmit and a second set for receive, on one rotator.
-    Compared with a single antenna it adds a second antenna, coax, arrestor, adapter, GRC and USB cable, plus a cross-boom.
+    Compared with LA's single antenna, it swaps the end-mounted Yagi and aluminium tube for two center-mounted M2 Yagis on a fiberglass cross-boom, and adds a second coax run, arrestor, adapter, GRC and USB cable.
     The mast LNA becomes a standard part, and the sequencer and T/R relay kit are no longer needed. Known cost goes up by ${usd(split - single)}, LNA included.</div>` : "";
   return `<div class="wrap"><h1>Ground station parts list</h1>
     <p class="muted">Everything to build one station. Prices checked ${DATA.configs.single[0].last_priced}; shipping and tax not included.</p>
@@ -192,7 +192,7 @@ const INFO = {
   lna: {label: "Mast LNA", sub: "upgrade", ic: "🔊",
     role: "Amplifies the weak downlink before cable loss eats it. Must be switched out before transmit or the uplink destroys it."},
   rotator: {label: "Rotator", sub: "az/el drive", ic: "🧭",
-    role: "Physically points the antenna along the pass. Tracking error costs dB; this is what keeps a 13 dBi beam on target."},
+    role: "Physically points the antenna along the pass. Tracking error costs dB; this is what keeps a 13 dBi beam on target. The end-mounted Yagi hangs off an aluminium tube boom in the elevation clamp."},
   mount: {label: "Roof mount", sub: "per site", ic: "🏗️",
     role: "Holds mast, rotator and antenna against wind. A civil decision per site, not a catalogue part."},
   tinygs: {label: "TinyGS node", sub: "upgrade · standalone", ic: "🛰️",
@@ -220,11 +220,11 @@ const INFO = {
     role: "Commissioning only: a second GRC behind 30 dB of pads proves a frame decodes without anything on the roof."},
 };
 const SPLIT_INFO = {
-  antenna: {label: "TX antenna", role: "Transmit-only Yagi. Carries the +30 dBm uplink, so nothing sensitive sits on its feedline."},
-  antenna_rx: {label: "RX antenna", sub: "70 cm Yagi · model unconfirmed", ic: "📡",
-    role: "Receive-only Yagi on the same cross-boom. Feeds the LNA directly, with no T/R relay in the path."},
+  antenna: {label: "TX antenna", sub: "M2 436CP16", role: "Transmit-only Yagi. Carries the +30 dBm uplink, so nothing sensitive sits on its feedline."},
+  antenna_rx: {label: "RX antenna", sub: "M2 436CP30 · 15.5 dBic", ic: "📡",
+    role: "Receive-only Yagi on the same cross-boom: longer and higher gain than the TX antenna, because the downlink is the weak direction. Feeds the LNA directly, with no T/R relay in the path."},
   lna: {sub: "RX chain", role: "Sits permanently in the RX line at the mast. The uplink leaves through the other antenna, so no sequencer is needed. Open question: is the TX antenna far enough away not to overload it?"},
-  rotator: {sub: "turns both antennas", role: "One rotator turns both antennas together on a cross-boom, so the two chains always point at the same place."},
+  rotator: {sub: "turns both antennas", role: "One rotator turns both antennas together on a fiberglass cross-boom, so the two chains always point at the same place. Fiberglass, because both antennas are center-mounted and a metal boom would sit in their near field."},
   coax: {label: "TX coax"}, coax_rx: {label: "RX coax", sub: "LMR-400 · ~2.7 dB", ic: "〰️", role: "Receive feedline. Behind the LNA, so its loss matters far less to the link budget."},
   arrestor: {label: "TX arrestor"}, arrestor_rx: {label: "RX arrestor", sub: "at building entry", ic: "⚡", role: "Same surge protection on the second run. Every cable entering the building gets one."},
   adapter: {label: "TX N→SMA"}, adapter_rx: {label: "RX N→SMA", sub: "", ic: "🔩", role: "Bridges the RX feedline to the RX GRC."},

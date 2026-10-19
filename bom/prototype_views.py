@@ -49,17 +49,36 @@ ANNOTATIONS = {
 RF_CHAIN = {"antenna", "coax", "arrestor", "adapter", "grc", "usb"}
 # A dedicated RX antenna means the LNA never sees transmit power, so no T/R switching is needed.
 SPLIT_DROPS = {"70 cm LNA kit with 1200 W T/R relays, RHCP", "Sequencer for LNA and PA switching"}
-CROSSBOOM = {
-    "group": "Rotator", "item": "Cross-boom for two antennas", "vendor": "?", "part": "", "url": "", "qty": "1",
-    "unit_price_usd": "?", "substitute": "", "status": "untested", "last_priced": "", "flag": "verify", "node": "rotator",
-    "purpose": "Carries the TX and RX antennas side by side on one rotator.",
-    "note": "Borrego mounts both Yagis on one cross-boom on a single rotator. Part not recorded.",
-}
+ROW = {"substitute": "", "last_priced": "2026-10-19", "qty": "1", "flag": ""}
+LA_BOOM = dict(ROW, group="Rotator", item="Antenna boom, end-mount", vendor="McMaster-Carr",
+    part="Multipurpose 6061 aluminum round tube, 1-1/2 in OD, 1/8 in wall, 6 ft",
+    url="https://www.mcmaster.com/framing/multipurpose-6061-aluminum-round-tubes/", unit_price_usd="?",
+    status="proven", flag="quote", node="rotator", purpose="Holds the antenna in the rotator's elevation clamp.",
+    note="LA's Yagi is end-mounted, so it hangs off a metal tube clamped in the rotator, clear of the elements. "
+         "McMaster part number and price not recorded.")
+CROSSBOOM = dict(ROW, group="Rotator", item="Fiberglass cross-boom for two antennas", vendor="M2 Antenna Systems",
+    part="FGCB60 (CROSSBOOM, HD FG 11 ft)", url="https://www.m2inc.com/FGCB60", unit_price_usd="389.99",
+    status="proven", flag="verify", node="rotator",
+    purpose="Carries the TX and RX antennas side by side on one rotator.",
+    note="Borrego uses an M2 fiberglass cross-boom; the exact model is not recorded. FGCB60 is M2's 11 ft heavy-duty boom "
+         "for the G-5500. Fiberglass keeps metal out of the near field of the center-mounted antennas.")
+TX_ANT = dict(ROW, group="Antenna", item="70 cm crossed Yagi, TX", vendor="M2 Antenna Systems", part="436CP16",
+    url="https://m2inc.com/FG436CP16", unit_price_usd="367.95", status="untested", flag="verify", node="antenna", chain="tx",
+    purpose="Transmit antenna. Center-mounts on the cross-boom.",
+    note="Borrego's TX antenna. It has not yet closed an uplink at Borrego. LA's reference Yagi is end-mounted, "
+         "which suits a tube boom rather than a center cross-boom.")
+RX_ANT = dict(ROW, group="Antenna", item="70 cm crossed Yagi, RX", vendor="M2 Antenna Systems", part="436CP30",
+    url="https://m2inc.com/FG436CP30", unit_price_usd="643.99", status="proven", node="antenna_rx", chain="rx",
+    purpose="Receive antenna. Longer and higher gain than the TX antenna.",
+    note="Borrego's RX antenna. 15.5 dBic per M2's spec sheet. Center mount.")
 
 
 def split(base, upgrades):
     rows = []
     for r in base:
+        if r["node"] == "antenna":
+            rows += [CROSSBOOM, TX_ANT, RX_ANT]
+            continue
         if r["node"] not in RF_CHAIN:
             rows.append(r)
             continue
@@ -67,11 +86,7 @@ def split(base, upgrades):
             c = dict(r, item=f"{r['item']} ({side})", chain=side.lower())
             if side == "RX" and r["node"] != "usb":
                 c["node"] = r["node"] + "_rx"
-            if side == "RX" and r["node"] == "antenna":
-                c["flag"] = "verify"
-                c["note"] = "Borrego's RX antenna model is not recorded here; listed as the same Yagi. " + r["note"]
             rows.append(c)
-    rows.insert(next(i for i, r in enumerate(rows) if r["group"] == "Antenna"), CROSSBOOM)
     lna = next(u for u in upgrades if u["node"] == "lna" and u["item"] not in SPLIT_DROPS)
     rows.append(dict(lna, group="Antenna", chain="rx", note="In Borrego's RX chain. With a dedicated RX antenna it needs no TX bypass, "
                      "but TX-to-RX isolation on a shared boom is not measured. " + lna["note"]))
@@ -85,7 +100,9 @@ def main():
             r["purpose"], r["node"], r["flag"] = ANNOTATIONS[r["item"]]
     # One BOM: the uplink list. Receive-only differs by the commissioning kit alone.
     split_rows, split_upgrades = split(data["uplink"], data["upgrades"])
-    payload = {"configs": {"single": data["uplink"], "split": split_rows},
+    single = list(data["uplink"])
+    single.insert(next(i for i, r in enumerate(single) if r["group"] == "Antenna"), LA_BOOM)
+    payload = {"configs": {"single": single, "split": split_rows},
                "upgrades": {"single": data["upgrades"], "split": split_upgrades}}
     page = (HERE / "prototype_views.template.html").read_text()
     page = page.replace("/*__DATA__*/null", json.dumps(payload))
