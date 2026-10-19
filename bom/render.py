@@ -1,32 +1,80 @@
 #!/usr/bin/env python3
-"""Render docs/bom.md and docs/bom.html from bom/*.csv. Run: python3 -I bom/render.py"""
+"""Render docs/bom.md and docs/bom.html from bom/. Run: python3 -I bom/render.py"""
 import csv
-import html
+import json
+import re
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-TIERS = [
-    ("uplink", "Uplink station", "Commands the satellite. Everything in the receive station plus the commissioning kit."),
-    ("receive", "Receive station", "Receives only. A strict subset of the uplink station."),
-    ("upgrades", "Recommended upgrades", "Suggested by the RF review but not yet in the chain on a pass that closed the link (ADR 0001)."),
-]
-COLS = ["group", "item", "vendor", "part", "url", "qty", "unit_price_usd", "substitute", "status", "last_priced", "note"]
+BOM = ROOT / "bom"
+CONFIGS = {
+    "single": ("Single antenna", "One antenna transmits and receives, as at LA."),
+    "split": ("Split TX/RX", "Separate TX and RX antennas, feedlines and GRCs on one rotator via a fiberglass cross-boom, as at Borrego."),
+}
+UPGRADES_BLURB = "Suggested by the RF review but not yet in the chain on a pass that closed the link (ADR 0001)."
+COLS = ["group", "item", "vendor", "part", "url", "qty", "unit_price_usd", "substitute", "status", "last_priced",
+        "config", "block", "flag", "purpose", "note"]
 STATUSES = {"proven", "substitute", "upgrade", "untested"}
+FLAGS = {"", "intl", "proves", "site"}
+# The BOM is published; device serials must not be. Mixed letter-digit run of 8+ chars.
+SERIAL = re.compile(r"\b(?=[A-Z0-9]*\d)(?=[A-Z0-9]*[A-Z])[A-Z0-9]{8,}\b")
+URL = re.compile(r"https?://\S+")
 
 
-def load(name):
-    with open(ROOT / "bom" / f"{name}.csv", newline="") as f:
+def in_config(r, cfg):
+    return r["config"] in ("all", cfg)
+
+
+def configs_of(r):
+    return list(CONFIGS) if r["config"] == "all" else [r["config"]]
+
+
+def load(name, topo):
+    with open(BOM / f"{name}.csv", newline="") as f:
         rows = list(csv.DictReader(f))
     for r in rows:
         if list(r) != COLS:
             sys.exit(f"{name}.csv: columns must be {COLS}")
+        it = r["item"]
         if r["status"] not in STATUSES:
-            sys.exit(f"{name}.csv: bad status {r['status']!r} on {r['item']!r}")
-        if r["unit_price_usd"] != "?":
-            float(r["unit_price_usd"])
-        int(r["qty"])
+            sys.exit(f"{name}.csv: bad status {r['status']!r} on {it!r}")
+        if r["config"] not in ("all", *CONFIGS):
+            sys.exit(f"{name}.csv: bad config {r['config']!r} on {it!r}")
+        if r["flag"] not in FLAGS:
+            sys.exit(f"{name}.csv: bad flag {r['flag']!r} on {it!r}")
+        if not re.fullmatch(r"\d+", r["qty"]):
+            sys.exit(f"{name}.csv: qty {r['qty']!r} is not an integer on {it!r}")
+        if r["unit_price_usd"] != "?" and not re.fullmatch(r"\d+(\.\d+)?", r["unit_price_usd"]):
+            sys.exit(f"{name}.csv: price {r['unit_price_usd']!r} is not a number or '?' on {it!r}")
+        for tok in SERIAL.findall(URL.sub("", r["note"])):
+            if tok not in r["part"]:
+                sys.exit(f"{name}.csv: note on {it!r} carries {tok!r}, which looks like a device serial; publish the fact without the value")
+        for cfg in configs_of(r):
+            if r["block"] not in topo["positions"][cfg]:
+                sys.exit(f"{name}.csv: block {r['block']!r} on {it!r} is not in topology.json for config {cfg}")
     return rows
+
+
+def check_topology(topo):
+    for cfg in CONFIGS:
+        pos = topo["positions"][cfg]
+        for b in pos:
+            if b not in topo["blocks"]:
+                sys.exit(f"topology.json: {cfg} positions block {b!r} that has no entry in blocks")
+        for link in topo["links"][cfg]:
+            for b in link[:2]:
+                if b not in pos:
+                    sys.exit(f"topology.json: {cfg} link {link[:2]} names {b!r}, which has no {cfg} position")
+
+
+def check_unique(*files):
+    seen = set()
+    for rows in files:
+        for r in rows:
+            if r["item"] in seen:
+                sys.exit(f"item {r['item']!r} appears more than once across reference.csv and upgrades.csv")
+            seen.add(r["item"])
 
 
 def totals(rows):
@@ -40,10 +88,18 @@ def totals(rows):
     return total, unknown
 
 
-def check_subset(uplink, receive):
-    missing = {r["item"] for r in receive} - {r["item"] for r in uplink}
-    if missing:
-        sys.exit(f"receive.csv has lines absent from uplink.csv: {sorted(missing)}")
+def merged(rows):
+    """Buyer lines: rows sharing vendor and part collapse to one line with summed qty."""
+    out = {}
+    for r in rows:
+        key = (r["vendor"], r["part"]) if r["part"] else r["item"]
+        if key in out:
+            m = out[key]
+            m["qty"] = str(int(m["qty"]) + int(r["qty"]))
+            m["purpose"] = m["purpose"].rstrip() + " One each for TX and RX."
+        else:
+            out[key] = dict(r, item=re.sub(r" \(RX\)$", "", r["item"]))
+    return list(out.values())
 
 
 def money(r):
@@ -54,88 +110,57 @@ def md_cell(s):
     return s.replace("|", "\\|").replace("\n", " ")
 
 
-def render_md(data):
-    out = ["# Hardware BOM", "", "Generated by `bom/render.py` from `bom/*.csv`. Edit the CSVs, not this file.", ""]
-    out.append("| Tier | Priced total (USD) | Lines without a price |")
-    out.append("|---|---|---|")
-    for key, title, _ in TIERS:
-        t, u = totals(data[key])
-        out.append(f"| {title} | ${t:,.2f} | {u} |")
+def md_table(rows, with_config=False):
+    head = ["Item", "Purpose", "Vendor", "Part", "Qty", "Unit USD", "Status", "Substitute", "Last priced", "Note"]
+    if with_config:
+        head.insert(1, "Config")
+    out = ["| " + " | ".join(head) + " |", "|" + "---|" * len(head)]
+    for r in rows:
+        part = f"[{md_cell(r['part'])}]({r['url']})" if r["url"] and r["part"] else md_cell(r["part"])
+        cells = [md_cell(r["item"]), md_cell(r["purpose"]), md_cell(r["vendor"]), part, r["qty"], money(r), r["status"],
+                 md_cell(r["substitute"]), r["last_priced"], md_cell(r["note"])]
+        if with_config:
+            cells.insert(1, r["config"])
+        out.append("| " + " | ".join(cells) + " |")
+    return out
+
+
+def render_md(ref, upg):
+    out = ["# Hardware BOM", "", "Generated by `bom/render.py` from `bom/`. Edit the CSVs and `topology.json`, not this file.", "",
+           "| Configuration | Priced total (USD) | Lines without a price | With upgrades (USD) |", "|---|---|---|---|"]
+    for cfg, (title, _) in CONFIGS.items():
+        t, u = totals(r for r in ref if in_config(r, cfg))
+        tu, _ = totals(r for r in upg if in_config(r, cfg))
+        out.append(f"| {title} | ${t:,.2f} | {u} | ${t + tu:,.2f} |")
     out += ["", "Totals cover only lines with a confirmed price. Shipping, duty and tax are not included."]
-    for key, title, blurb in TIERS:
+    for cfg, (title, blurb) in CONFIGS.items():
         out += ["", f"## {title}", "", blurb, ""]
-        out.append("| Item | Vendor | Part | Qty | Unit USD | Status | Substitute | Last priced | Note |")
-        out.append("|---|---|---|---|---|---|---|---|---|")
-        for r in data[key]:
-            part = f"[{md_cell(r['part'])}]({r['url']})" if r["url"] and r["part"] else md_cell(r["part"])
-            out.append("| " + " | ".join([
-                md_cell(r["item"]), md_cell(r["vendor"]), part, r["qty"], money(r), r["status"],
-                md_cell(r["substitute"]), r["last_priced"], md_cell(r["note"]),
-            ]) + " |")
+        out += md_table(merged(r for r in ref if in_config(r, cfg)))
+    out += ["", "## Recommended upgrades", "", UPGRADES_BLURB, ""]
+    out += md_table(upg, with_config=True)
     return "\n".join(out) + "\n"
 
 
-CSS = """
-:root{--bg:#fff;--fg:#1a1a1a;--muted:#555;--line:#ddd;--head:#f3f3f3;--link:#0645ad;
---proven:#1b7f3b;--substitute:#8a6d00;--upgrade:#2a5db0;--untested:#8a3b00}
-@media(prefers-color-scheme:dark){:root{--bg:#121212;--fg:#e6e6e6;--muted:#aaa;--line:#333;--head:#1e1e1e;--link:#8ab4f8;
---proven:#5fd38d;--substitute:#e6c35c;--upgrade:#8ab4f8;--untested:#f0a35c}}
-body{margin:0;padding:1rem;font:16px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--fg);max-width:70rem;margin-inline:auto}
-a{color:var(--link)} h1{font-size:1.6rem} h2{font-size:1.25rem;margin-top:2rem}
-p.muted{color:var(--muted)}
-table.summary{border-collapse:collapse;margin:1rem 0}
-table.summary th,table.summary td{border:1px solid var(--line);padding:.4rem .7rem;text-align:left}
-table.summary th{background:var(--head)}
-.card{border:1px solid var(--line);border-radius:8px;padding:.8rem 1rem;margin:.8rem 0}
-.card h3{margin:0 0 .3rem;font-size:1.05rem}
-.card .meta{display:flex;flex-wrap:wrap;gap:.4rem 1rem;color:var(--muted);font-size:.92rem}
-.card .note{margin:.5rem 0 0}
-.status{font-weight:600;text-transform:uppercase;font-size:.78rem;letter-spacing:.03em}
-.status.proven{color:var(--proven)}.status.substitute{color:var(--substitute)}
-.status.upgrade{color:var(--upgrade)}.status.untested{color:var(--untested)}
-.price{font-weight:600}
-"""
-
-
-def render_html(data):
-    e = html.escape
-    o = ["<!doctype html>", "<html lang=\"en\"><head><meta charset=\"utf-8\">",
-         "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">",
-         "<meta name=\"color-scheme\" content=\"light dark\">",
-         "<title>PROVES ground station hardware BOM</title>", f"<style>{CSS}</style></head><body>",
-         "<h1>PROVES ground station hardware BOM</h1>",
-         "<p class=\"muted\">Generated by <code>bom/render.py</code> from <code>bom/*.csv</code>. "
-         "Totals cover only lines with a confirmed price; shipping, duty and tax are not included.</p>",
-         "<table class=\"summary\"><tr><th>Tier</th><th>Priced total (USD)</th><th>Lines without a price</th></tr>"]
-    for key, title, _ in TIERS:
-        t, u = totals(data[key])
-        o.append(f"<tr><td><a href=\"#{key}\">{e(title)}</a></td><td>${t:,.2f}</td><td>{u}</td></tr>")
-    o.append("</table>")
-    for key, title, blurb in TIERS:
-        o.append(f"<h2 id=\"{key}\">{e(title)}</h2><p class=\"muted\">{e(blurb)}</p>")
-        for r in data[key]:
-            part = e(r["part"]) or "(no part)"
-            if r["url"] and r["part"]:
-                part = f"<a href=\"{e(r['url'])}\">{part}</a>"
-            meta = [f"<span>Vendor: {e(r['vendor']) or '(none)'}</span>", f"<span>Part: {part}</span>",
-                    f"<span>Qty: {e(r['qty'])}</span>", f"<span class=\"price\">Unit: {e(money(r))}</span>",
-                    f"<span>Last priced: {e(r['last_priced'])}</span>"]
-            if r["substitute"]:
-                meta.append(f"<span>Substitute: {e(r['substitute'])}</span>")
-            o.append(f"<div class=\"card\"><h3>{e(r['item'])} <span class=\"status {e(r['status'])}\">{e(r['status'])}</span></h3>"
-                     f"<div class=\"meta\">{''.join(meta)}</div><p class=\"note\">{e(r['note'])}</p></div>")
-    o.append("</body></html>\n")
-    return "\n".join(o)
+def render_html(ref, upg, topo):
+    data = {"configs": {k: v[0] for k, v in CONFIGS.items()}, "reference": ref, "upgrades": upg, "topology": topo}
+    # "</" would close the inline <script> early.
+    blob = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+    return (BOM / "bom.template.html").read_text().replace("/*__DATA__*/null", blob)
 
 
 def main():
-    data = {key: load(key) for key, _, _ in TIERS}
-    check_subset(data["uplink"], data["receive"])
-    (ROOT / "docs" / "bom.md").write_text(render_md(data))
-    (ROOT / "docs" / "bom.html").write_text(render_html(data))
-    for key, title, _ in TIERS:
-        t, u = totals(data[key])
-        print(f"{title}: {len(data[key])} lines, ${t:,.2f} priced, {u} unpriced")
+    topo = json.loads((BOM / "topology.json").read_text())
+    check_topology(topo)
+    ref, upg = load("reference", topo), load("upgrades", topo)
+    check_unique(ref, upg)
+    (ROOT / "docs" / "bom.md").write_text(render_md(ref, upg))
+    (ROOT / "docs" / "bom.html").write_text(render_html(ref, upg, topo))
+    for cfg, (title, _) in CONFIGS.items():
+        rows, up = [r for r in ref if in_config(r, cfg)], [r for r in upg if in_config(r, cfg)]
+        t, u = totals(rows)
+        tu, uu = totals(up)
+        print(f"{title}: {len(rows)} lines, ${t:,.2f} priced, {u} unpriced; "
+              f"upgrades {len(up)} lines, ${tu:,.2f} priced, {uu} unpriced")
 
 
 if __name__ == "__main__":

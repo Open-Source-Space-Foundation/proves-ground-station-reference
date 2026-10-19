@@ -1,0 +1,340 @@
+<!doctype html>
+<!-- Template for bom/render.py, which writes docs/bom.html. -->
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>PROVES ground station hardware BOM</title>
+<style>
+:root{--bg:#fbfaf7;--panel:#fff;--fg:#1b1b1b;--muted:#646464;--line:#dedbd3;--head:#f1efe9;--link:#0b57d0;
+--rf:#d9480f;--data:#1c7ed6;--ctl:#7048e8;--mech:#868e96;--ok:#2b8a3e;--warn:#a46b00;--up:#1c7ed6;--un:#c2410c;
+--roof:#e7f0fb;--entry:#f4eee2;--shack:#eef5ec;--bench:#f3edf7}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111214;--panel:#1a1b1e;--fg:#e8e8e8;--muted:#a0a0a0;--line:#2e3035;--head:#202227;--link:#8ab4f8;
+--rf:#ff8a4c;--data:#5aa9ff;--ctl:#a48bff;--mech:#8d949b;--ok:#69db7c;--warn:#ffd43b;--up:#74c0fc;--un:#ffa94d;
+--roof:#16202c;--entry:#231f17;--shack:#17221a;--bench:#211a26}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,sans-serif;padding-bottom:2rem}
+a{color:var(--link)}
+.wrap{max-width:72rem;margin:0 auto;padding:1rem 16px}
+h1{font-size:1.4rem;margin:.2rem 0}
+.muted{color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--panel);color:var(--fg);padding:.35rem .8rem;font:inherit;cursor:pointer}
+.seg button.on{background:var(--fg);color:var(--bg)}
+.bar{display:flex;flex-wrap:wrap;gap:.6rem 1rem;align-items:center;margin:.8rem 0}
+.flag{display:inline-block;font-size:.75rem;padding:.05rem .45rem;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.flag.quote{color:var(--warn)}.flag.intl{color:var(--up)}.flag.proves{color:var(--ctl)}.flag.site{color:var(--muted)}
+.tabs{display:flex;gap:.2rem;border-bottom:1px solid var(--line);margin-top:.6rem;overflow-x:auto}
+.tabs button{border:0;border-bottom:3px solid transparent;background:none;color:var(--muted);padding:.5rem .9rem;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--rf)}
+h2.view{font-size:1.2rem;margin:.6rem 0 .2rem}
+.st{font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.st.proven{color:var(--ok)}.st.substitute{color:var(--warn)}.st.upgrade{color:var(--up)}.st.untested{color:var(--un)}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* A: order sheet */
+.sheet{width:100%;border-collapse:collapse;background:var(--panel)}
+.sheet th,.sheet td{border-bottom:1px solid var(--line);padding:.45rem .5rem;vertical-align:top;text-align:left}
+.sheet th{background:var(--head);font-size:.8rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);position:sticky;top:0}
+.sheet tr.done td{opacity:.45}.sheet tr.done .it{text-decoration:line-through}
+.sheet .grp td{background:var(--bg);font-weight:600;font-size:.8rem;color:var(--muted);padding-top:.9rem}
+.sheet .it{font-weight:600}.sheet .pp{color:var(--muted);font-size:.88rem}
+.totals{position:sticky;bottom:1rem;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.6rem 1rem;margin-top:1rem;display:flex;flex-wrap:wrap;gap:.4rem 1.6rem;box-shadow:0 2px 10px #0001}
+.totals b{font-size:1.15rem}
+@media(max-width:700px){.sheet .hide-sm{display:none}}
+@media print{.tabs,.bar,.totals{display:none}.sheet th{position:static}}
+
+/* C: system map */
+.map{display:grid;grid-template-columns:minmax(0,1fr) 22rem;gap:1rem;align-items:start}
+@media(max-width:900px){.map{grid-template-columns:1fr}}
+.map svg{width:100%;height:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;display:block}
+.node rect{fill:var(--panel);stroke:var(--fg);stroke-width:1.5;rx:10}
+.node text{fill:var(--fg);font-size:14px;font-weight:600;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+.node .sub{font-size:11px;font-weight:400;fill:var(--muted)}
+.node{cursor:pointer;transition:opacity .2s}
+.node:hover rect,.node.sel rect{stroke-width:3}
+.node.sel rect{stroke:var(--rf)}
+.node.ghost{opacity:.22}.node.ghost rect{stroke-dasharray:5 4}
+.node.dim{opacity:.35}
+.edge{fill:none;stroke-width:2.5;transition:opacity .2s}
+.edge.rf{stroke:var(--rf);stroke-dasharray:8 6;animation:flow 1s linear infinite}
+.edge.data{stroke:var(--data)}.edge.ctl{stroke:var(--ctl);stroke-dasharray:2 5}.edge.mech{stroke:var(--mech);stroke-width:5;opacity:.6}
+.edge.ghost{opacity:.12}.edge.dim{opacity:.12}.edge.hot{stroke-width:4.5;opacity:1}
+@keyframes flow{to{stroke-dashoffset:-14}}
+@media(prefers-reduced-motion:reduce){.edge.rf{animation:none}}
+.zone{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;fill:var(--muted)}
+.inspector{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem;position:sticky;top:1rem;max-height:calc(100vh - 6rem);overflow:auto}
+.inspector h2{margin:0 0 .3rem;font-size:1.2rem}
+.part{border-top:1px solid var(--line);padding:.7rem 0}
+.part .row{display:flex;justify-content:space-between;gap:.6rem;align-items:baseline}
+.part details{font-size:.88rem;margin-top:.3rem}.part summary{cursor:pointer;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:.3rem 1rem;font-size:.85rem}
+.legend span::before{content:"";display:inline-block;width:1.4rem;height:4px;vertical-align:middle;margin-right:.35rem;background:var(--c)}
+.legend label{cursor:pointer}
+.conn{font-size:.88rem;margin:.4rem 0 .6rem;padding:0;list-style:none}
+.conn li::before{content:"";display:inline-block;width:.9rem;height:3px;margin-right:.4rem;vertical-align:middle;background:var(--c)}
+
+/* D: trace a pass */
+.trace{display:grid;grid-template-columns:20rem minmax(0,1fr);gap:1.4rem;align-items:start}
+@media(max-width:860px){.trace{grid-template-columns:1fr}}
+.story{position:sticky;top:1rem;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem}
+.story .phase{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--rf);font-weight:700}
+.story h2{margin:.2rem 0 .5rem;font-size:1.3rem}
+.story .nav{display:flex;gap:.5rem;margin-top:1rem}
+.story .nav button{flex:1;padding:.5rem;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;cursor:pointer}
+.dots{display:flex;gap:.35rem;margin-top:.8rem;flex-wrap:wrap}
+.dots button{width:.8rem;height:.8rem;border-radius:50%;border:0;background:var(--line);padding:0;cursor:pointer}
+.dots button.on{background:var(--rf)}
+.stack{display:flex;flex-direction:column;gap:0}
+.stage{display:grid;grid-template-columns:2.4rem minmax(0,1fr) auto;gap:.8rem;align-items:center;padding:.65rem .9rem;border:1px solid var(--line);border-radius:10px;background:var(--panel);transition:all .25s;cursor:pointer}
+.stage+.stage{margin-top:.25rem}
+.stage .ic{font-size:1.4rem;text-align:center}
+.stage .nm{font-weight:650}.stage .pt{font-size:.85rem;color:var(--muted)}
+.stage.off{opacity:.3;transform:scale(.985)}
+.stage.lit{border-color:var(--rf);box-shadow:0 0 0 2px color-mix(in srgb,var(--rf) 35%,transparent)}
+.stage.lit .ic{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.18)}}
+.stage .more{grid-column:2/4;font-size:.88rem;display:none}
+.stage.open .more{display:block}
+.arrow{height:1.2rem;display:grid;place-items:center;color:var(--muted);font-size:.9rem;transition:color .25s}
+.arrow.down{color:var(--rf)}.arrow.up{color:var(--data)}
+.stage.sat{background:linear-gradient(90deg,var(--roof),var(--panel))}
+
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
+.pair .stage{grid-template-columns:2rem minmax(0,1fr) auto;gap:.5rem}
+.chainhead{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:.3rem 0}
+.chainhead span:first-child{color:var(--data)}.chainhead span:last-child{color:var(--rf)}
+.splitnote{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--ctl);border-radius:8px;padding:.6rem .9rem;margin:.6rem 0;font-size:.92rem}
+</style></head><body>
+<div id="app"></div>
+<script>
+const DATA = /*__DATA__*/null;
+const TOPO = DATA.topology;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const price = r => r.unit_price_usd === "?" ? null : +r.unit_price_usd;
+const usd = n => n == null ? "—" : "$" + n.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const cost = rs => rs.reduce((a, r) => a + (price(r) ?? 0) * +r.qty, 0);
+const FLAGS = {quote: "Get a quote", intl: "Ships from EU, add duty", proves: "Request from PROVES", site: "Site decision"};
+const flagOf = r => price(r) == null ? "quote" : r.flag;
+const flag = r => flagOf(r) ? `<span class="flag ${flagOf(r)}">${FLAGS[flagOf(r)]}</span>` : "";
+const S = {cfg: "single", upgrades: false, done: new Set(), node: "grc", step: 0, open: new Set()};
+const UPG = new Set(DATA.upgrades);
+const inCfg = (r, cfg = S.cfg) => r.config === "all" || r.config === cfg;
+const ref = (cfg = S.cfg) => DATA.reference.filter(r => inCfg(r, cfg));
+const rowsFor = () => [...ref(), ...(S.upgrades ? DATA.upgrades.filter(r => inCfg(r)) : [])];
+const allRows = () => [...ref(), ...DATA.upgrades.filter(r => inCfg(r))];
+function controls() {
+  return `<div class="bar"><div class="seg">${Object.entries(DATA.configs).map(([k, n]) =>
+    `<button data-cfg="${k}" class="${S.cfg === k ? "on" : ""}">${esc(n)}</button>`).join("")}</div>
+    <label><input type="checkbox" id="upg" ${S.upgrades ? "checked" : ""}> Include recommended upgrades</label></div>`;
+}
+
+/* ---------- Order sheet ---------- */
+// The RX copy of a shared part collapses into the shared line with the summed quantity.
+function merged(rows) {
+  const out = new Map();
+  for (const r of rows) {
+    const key = r.part ? `${r.vendor}|${r.part}` : r.item;
+    const m = out.get(key);
+    if (m) { m.qty = String(+m.qty + +r.qty); m.both = true; }
+    else out.set(key, {...r, key, item: r.item.replace(/ \(RX\)$/, "")});
+  }
+  return [...out.values()];
+}
+function OrderSheet() {
+  const rows = merged(rowsFor());
+  const groups = [...new Set(rows.map(r => r.group))];
+  let total = 0, unpriced = 0, left = 0;
+  const body = groups.map(g => `<tr class="grp"><td colspan="7">${esc(g)}</td></tr>` + rows.filter(r => r.group === g).map(r => {
+    const p = price(r), line = p == null ? null : p * +r.qty;
+    if (line == null) unpriced++; else total += line;
+    if (!S.done.has(r.key)) left++;
+    return `<tr class="${S.done.has(r.key) ? "done" : ""}">
+      <td><input type="checkbox" data-done="${esc(r.key)}" ${S.done.has(r.key) ? "checked" : ""} aria-label="Ordered"></td>
+      <td><div class="it">${esc(r.item)}</div><div class="pp">${esc(r.purpose)}${r.both ? " One each for TX and RX." : ""}${r.group === "Commissioning" ? " Setup only." : ""}</div></td>
+      <td>${r.url ? `<a href="${esc(r.url)}" target="_blank">${esc(r.part)}</a>` : esc(r.part) || "—"}<div class="pp">${esc(r.vendor)}</div></td>
+      <td class="num">${r.qty}</td><td class="num hide-sm">${usd(p)}</td><td class="num">${usd(line)}</td>
+      <td class="hide-sm">${flag(r)}${r.substitute && !r.substitute.startsWith("None") ? `<div class="pp">Substitutes OK</div>` : ""}</td></tr>`;
+  }).join("")).join("");
+  const note = S.cfg === "split" ? `<div class="splitnote"><b>Split TX / RX</b> uses one antenna, cable run and radio for transmit and a second set for receive, on one rotator.
+    Compared with the single antenna, it swaps the end-mounted Yagi and aluminium tube for two center-mounted M2 Yagis on a fiberglass cross-boom, and adds a second pair of coax runs, arrestor, adapter, GRC and USB cable.
+    The mast LNA becomes a standard part with its own 12 V line, and the sequencer and T/R relay kit are no longer needed. Known cost goes up by ${usd(cost(ref("split")) - cost(ref("single")))}.</div>` : "";
+  return `<h2 class="view">Everything to build one station</h2>
+    <p class="muted">Prices checked on each line's last-priced date; shipping and tax not included.</p>
+    ${controls()}${note}
+    <table class="sheet"><thead><tr><th></th><th>Item</th><th>Buy this</th><th class="num">Qty</th><th class="num hide-sm">Unit</th><th class="num">Line</th><th class="hide-sm">Notes</th></tr></thead>
+    <tbody>${body}</tbody></table>
+    <div class="totals" id="totals"><span>Known cost <b>${usd(total)}</b></span><span>${unpriced} lines need a quote</span><span>${left} of ${rows.length} still to order</span>
+    <span><button id="csv">Copy as CSV</button></span></div>`;
+}
+OrderSheet.wire = () => {
+  document.querySelectorAll("[data-done]").forEach(c => c.onchange = () => {
+    S.done.has(c.dataset.done) ? S.done.delete(c.dataset.done) : S.done.add(c.dataset.done); draw();
+  });
+  $("#csv").onclick = () => navigator.clipboard?.writeText(["Item,Vendor,Part,URL,Qty,Unit USD",
+    ...merged(rowsFor()).map(r => [r.item, r.vendor, r.part, r.url, r.qty, r.unit_price_usd].map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))].join("\n"));
+};
+
+/* ---------- shared developer model ---------- */
+const KIND = {rf: ["RF signal", "--rf"], data: ["USB data", "--data"], ctl: ["Control", "--ctl"], mech: ["Mechanical", "--mech"]};
+function NODES() {
+  const out = {};
+  for (const [id, [x, y]] of Object.entries(TOPO.positions[S.cfg])) {
+    const {split, ...b} = TOPO.blocks[id];
+    out[id] = {x, y, ...b, ...(S.cfg === "split" ? split : {})};
+  }
+  return out;
+}
+const itemsOf = id => allRows().filter(r => r.block === id);
+const nodeLive = id => { const set = new Set(rowsFor()); return itemsOf(id).some(r => set.has(r)); };
+
+/* ---------- System map ---------- */
+S.kinds = new Set(Object.keys(KIND));
+function SystemMap() {
+  const N = NODES(), L = TOPO.links[S.cfg], sel = N[S.node];
+  const pts = l => [[N[l[0]].x, N[l[0]].y], ...(l[3] || []), [N[l[1]].x, N[l[1]].y]];
+  const edges = L.map(l => {
+    const ghost = !nodeLive(l[0]) || !nodeLive(l[1]) || !S.kinds.has(l[2]);
+    const hot = l[0] === S.node || l[1] === S.node;
+    return `<polyline class="edge ${l[2]} ${ghost ? "ghost" : hot ? "hot" : "dim"}" points="${pts(l).map(p => p.join(",")).join(" ")}"/>`;
+  }).join("");
+  const neighbours = new Set(L.filter(l => l[0] === S.node || l[1] === S.node).flatMap(l => [l[0], l[1]]));
+  const nodes = Object.entries(N).map(([id, n]) => {
+    const cls = !nodeLive(id) ? `ghost${id === S.node ? " sel" : ""}` : id === S.node ? "sel" : neighbours.has(id) ? "" : "dim";
+    return `<g class="node ${cls}" data-node="${id}" transform="translate(${n.x - 75},${n.y - 26})">
+      <rect width="150" height="52"/><text x="75" y="${n.sub ? 19 : 26}">${n.ic} ${esc(n.label)}</text>
+      ${n.sub ? `<text class="sub" x="75" y="37">${esc(n.sub)}</text>` : ""}</g>`;
+  }).join("");
+  const conns = L.filter(l => l[0] === S.node || l[1] === S.node).map(l => {
+    const other = l[0] === S.node ? l[1] : l[0];
+    return `<li style="--c:var(${KIND[l[2]][1]})">${KIND[l[2]][0]} ${l[0] === S.node ? "to" : "from"} <a href="#" data-goto="${other}">${esc(N[other].label)}</a></li>`;
+  }).join("");
+  const parts = itemsOf(S.node).map(r => `<div class="part">
+    <div class="row"><b>${esc(r.item)}</b><span class="num">${usd(price(r))}${+r.qty > 1 ? ` ×${r.qty}` : ""}</span></div>
+    <div class="row"><span class="muted">${esc(r.vendor)}${r.part ? ` · ${esc(r.part)}` : ""}</span><span class="st ${r.status}">${r.status}${UPG.has(r) ? " · optional" : ""}</span></div>
+    ${r.substitute ? `<div class="muted" style="font-size:.85rem">Alt: ${esc(r.substitute)}</div>` : ""}
+    <details><summary>Field notes</summary>${esc(r.note)}${r.url ? ` <a href="${esc(r.url)}" target="_blank">Vendor page</a>` : ""}</details></div>`).join("");
+  const band = ([y, h, name, v]) => `<rect x="0" y="${y}" width="1060" height="${h}" fill="var(${v})"/><text class="zone" x="1048" y="${y + 18}" text-anchor="end">${name}</text>`;
+  return `<h2 class="view">How the station fits together</h2>
+    <p class="muted">Click any block. Faded blocks are optional upgrades you haven't switched on.</p>
+    ${controls()}
+    <div class="legend">${Object.entries(KIND).map(([k, [n, v]]) => `<label><input type="checkbox" data-kind="${k}" ${S.kinds.has(k) ? "checked" : ""}><span style="--c:var(${v})">${n}</span></label>`).join("")}</div>
+    <div class="map"><svg viewBox="0 0 1060 630" role="img" aria-label="Station block diagram">
+      ${TOPO.bands[S.cfg].map(band).join("")}${edges}${nodes}</svg>
+    <aside class="inspector" id="inspector"><div class="muted" style="font-size:.8rem">${sel.ic} SELECTED</div><h2>${esc(sel.label)}</h2>
+      <p>${esc(sel.role)}</p><ul class="conn">${conns}</ul>${parts || `<p class="muted">No parts.</p>`}
+      <p class="muted" style="font-size:.85rem">Block cost: ${usd(cost(itemsOf(S.node)))}</p></aside></div>`;
+}
+SystemMap.wire = () => {
+  document.querySelectorAll("[data-node]").forEach(g => g.onclick = () => { S.node = g.dataset.node; draw(); });
+  document.querySelectorAll("[data-goto]").forEach(a => a.onclick = e => { e.preventDefault(); S.node = a.dataset.goto; draw(); });
+  document.querySelectorAll("[data-kind]").forEach(c => c.onchange = () => { c.checked ? S.kinds.add(c.dataset.kind) : S.kinds.delete(c.dataset.kind); draw(); });
+};
+
+/* ---------- Trace a pass ---------- */
+// A pair [tx, rx] renders as two side-by-side chains.
+const STACK = {
+  single: ["sat", "antenna", "lna", "coax", "arrestor", "adapter", "swr", "grc", "sequencer", "usb", "pi", "rotctl", "rotator", "mount", "bench", "tinygs"],
+  split: ["sat", ["antenna", "antenna_rx"], [null, "lna"], ["coax", "coax_rx"], ["arrestor", "arrestor_rx"], ["adapter", "adapter_rx"],
+    ["swr", null], ["grc", "grc_rx"], "usb", "pi", "rotctl", "rotator", "mount", "bench", "tinygs"],
+};
+const SAT = {label: "Satellite", sub: "Electra, ~437 MHz LoRa", ic: "🛰️", role: "The other end of the link."};
+const RX = ["antenna_rx", "lna", "coax_rx", "arrestor_rx", "adapter_rx", "grc_rx"], TX = ["grc", "adapter", "arrestor", "coax", "antenna"];
+const down = ids => Object.fromEntries(ids.map(i => [i, "down"])), up = ids => Object.fromEntries(ids.map(i => [i, "up"]));
+const STEPS = [
+  {phase: "Overview", title: "The whole station", lit: () => [...STACK[S.cfg].flat()], dir: {},
+    text: () => S.cfg === "split"
+      ? "Every block of a split station. Transmit and receive each get their own antenna, cable and radio, sharing one rotator and one Pi. Step through a pass to see which chain works when."
+      : "Every block a station can have, from the sky down to the computer. Step through a pass to see which parts work when, and why each one is there."},
+  {phase: "T−10 min", title: "Get ready", lit: () => ["pi"], dir: {},
+    text: () => "The Pi checks NTP time and predicts the pass from the TLE. Time is a hard requirement: a few seconds wrong means the antenna points at empty sky."},
+  {phase: "AOS", title: "Point at the horizon", lit: () => ["pi", "rotctl", "rotator", "mount", "antenna", "antenna_rx"], dir: {pi: "down", rotctl: "down", rotator: "up"},
+    text: () => `The Pi sends GS-232B commands to the rotator interface, which drives the rotator. ${S.cfg === "split" ? "Both antennas swing together" : "The antenna swings"} to where the satellite will rise.`},
+  {phase: "Downlink", title: "Hear the satellite",
+    lit: () => S.cfg === "split" ? ["sat", ...RX, "usb", "pi"] : ["sat", "antenna", "lna", "coax", "arrestor", "adapter", "grc", "usb", "pi"],
+    dir: {sat: "down", ...down(RX), antenna: "down", lna: "down", coax: "down", arrestor: "down", adapter: "down", grc: "down", usb: "down"},
+    text: () => S.cfg === "split"
+      ? "Only the RX chain works. The signal enters the RX antenna, is boosted by the LNA right at the mast, runs down its own coax and reaches the RX GRC, which decodes frames for the Pi. The TX chain sits idle."
+      : "The satellite's signal enters the antenna, loses ~2.7 dB in the coax, passes the arrestor and reaches the GRC, which decodes LoRa frames and hands them to the Pi over USB. With upgrades, the LNA boosts it at the mast."},
+  {phase: "Uplink", title: "Send a command",
+    lit: () => S.cfg === "split" ? ["pi", "usb", ...TX, "sat"] : ["pi", "usb", "grc", "sequencer", "lna", "adapter", "arrestor", "coax", "antenna", "sat"],
+    dir: {pi: "up", usb: "up", ...up(TX)},
+    text: () => S.cfg === "split"
+      ? "The Pi signs a command with the mission key and the TX GRC sends it at +30 dBm up the TX coax and out the TX antenna. The RX chain and its LNA never carry that power, so no sequencer or relay is needed."
+      : "The Pi signs a command with the mission key; the GRC transmits at +30 dBm back up the same cable. If an LNA is fitted, the sequencer must pull it out of line first."},
+  {phase: "LOS", title: "Park", lit: () => ["pi", "rotctl", "rotator"], dir: {pi: "down", rotctl: "down"},
+    text: () => "The satellite sets. The Pi parks the rotator and stores the pass log."},
+  {phase: "Once, at setup", title: "Commission the station", lit: () => ["grc", "grc_rx", "bench", "swr", "rotator", "pi"], dir: {},
+    text: () => S.cfg === "split"
+      ? "Before the first real pass: the TX GRC loops back to the RX GRC through 30 dB of pads, the SWR meter proves the TX power, and the rotator sweeps its full range."
+      : "Before the first real pass: a bench loopback through 30 dB of pads proves a frame decodes, the SWR meter proves the radio's power, and the rotator sweeps its full range."},
+];
+function TracePass() {
+  const st = STEPS[S.step], lit = st.lit(), N = NODES();
+  const live = new Set(rowsFor());
+  const stage = id => {
+    if (!id) return "<div></div>";
+    const n = id === "sat" ? SAT : N[id];
+    const its = id === "sat" ? [] : itemsOf(id).filter(r => live.has(r));
+    if (id !== "sat" && !its.length) return "<div></div>";
+    return `<div class="stage ${lit.includes(id) ? "lit" : "off"} ${id === "sat" ? "sat" : ""} ${S.open.has(id) ? "open" : ""}" data-stage="${id}">
+      <div class="ic">${n.ic}</div><div><div class="nm">${esc(n.label)}</div><div class="pt">${esc(its.map(r => r.part || r.item).join(" · ") || n.sub)}</div></div>
+      <div class="num">${id === "sat" ? "" : usd(cost(its))}</div>
+      <div class="more">${esc(n.role)}${its.map(r => `<div style="margin-top:.4rem"><span class="st ${r.status}">${r.status}</span> ${esc(r.item)}: ${esc(r.note)}</div>`).join("")}</div></div>`;
+  };
+  const arrow = id => { const d = id && st.dir[id]; return `<div class="arrow ${d || ""}">${d === "down" ? "▼" : d === "up" ? "▲" : "·"}</div>`; };
+  const rows = STACK[S.cfg];
+  const firstPair = rows.findIndex(Array.isArray);
+  const html = rows.map((e, i) => {
+    const last = i === rows.length - 1;
+    if (!Array.isArray(e)) { const s = stage(e); return s === "<div></div>" ? "" : s + (last ? "" : arrow(e)); }
+    return (i === firstPair ? `<div class="chainhead"><span>TX chain ▲</span><span>RX chain ▼</span></div>` : "")
+      + `<div class="pair">${e.map(stage).join("")}</div><div class="pair">${e.map(arrow).join("")}</div>`;
+  }).join("");
+  return `<h2 class="view">Follow a pass through the station</h2>${controls()}
+    <div class="trace"><div class="story"><div class="phase">${st.phase} · ${S.step + 1}/${STEPS.length}</div><h2>${st.title}</h2><p>${st.text()}</p>
+      <div class="nav"><button id="back" ${S.step ? "" : "disabled"}>Back</button><button id="fwd" ${S.step < STEPS.length - 1 ? "" : "disabled"}>Next</button></div>
+      <div class="dots">${STEPS.map((s, i) => `<button class="${i === S.step ? "on" : ""}" data-step="${i}" title="${s.title}"></button>`).join("")}</div>
+      <p class="muted" style="font-size:.85rem;margin-top:1rem">Tap a block for what it does and its field notes. Space / Enter steps forward.</p></div>
+    <div class="stack">${html}</div></div>`;
+}
+TracePass.wire = () => {
+  $("#back").onclick = () => { S.step--; draw(); };
+  $("#fwd").onclick = () => { S.step++; draw(); };
+  document.querySelectorAll("[data-step]").forEach(b => b.onclick = () => { S.step = +b.dataset.step; draw(); });
+  document.querySelectorAll("[data-stage]").forEach(s => s.onclick = () => { const id = s.dataset.stage; S.open.has(id) ? S.open.delete(id) : S.open.add(id); draw(); });
+};
+document.addEventListener("keydown", e => {
+  if (view !== "trace" || e.target.closest("input,textarea,[contenteditable],button")) return;
+  if (e.key === " " || e.key === "Enter") { e.preventDefault(); S.step = Math.min(S.step + 1, STEPS.length - 1); draw(); }
+});
+
+/* ---------- tabs ---------- */
+const VIEWS = {order: ["Order sheet", OrderSheet], map: ["System map", SystemMap], trace: ["Trace a pass", TracePass]};
+let view = new URLSearchParams(location.search).get("view");
+if (!VIEWS[view]) view = "order";
+function draw() {
+  const V = VIEWS[view][1];
+  $("#app").innerHTML = `<div class="wrap"><h1>PROVES ground station hardware BOM</h1>
+    <div class="tabs" role="tablist">${Object.entries(VIEWS).map(([k, [n]]) =>
+      `<button role="tab" data-view="${k}" aria-selected="${k === view}">${n}</button>`).join("")}</div>
+    ${V()}</div>`;
+  document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => go(b.dataset.view));
+  document.querySelectorAll("[data-cfg]").forEach(b => b.onclick = () => {
+    S.cfg = b.dataset.cfg;
+    const N = NODES();
+    if (!N[S.node]) S.node = N[S.node.replace(/_rx$/, "")] ? S.node.replace(/_rx$/, "") : "grc";
+    draw();
+  });
+  $("#upg").onchange = e => { S.upgrades = e.target.checked; draw(); };
+  V.wire();
+}
+function go(v) {
+  view = v;
+  const u = new URL(location.href); u.searchParams.set("view", v);
+  try { history.replaceState(null, "", u); } catch {} // some browsers refuse on file://
+  scrollTo(0, 0); draw();
+}
+draw();
+</script>
+</body></html>

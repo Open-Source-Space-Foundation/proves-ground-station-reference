@@ -1,0 +1,82 @@
+{
+  "blocks": {
+    "antenna": {"label": "Antenna", "sub": "70 cm crossed Yagi", "ic": "📡",
+      "role": "Collects the satellite's 437 MHz signal and radiates the uplink. Circular polarisation means the satellite's tumble doesn't fade the link.",
+      "split": {"label": "TX antenna", "sub": "M2 436CP16", "role": "Transmit-only Yagi. Carries the +30 dBm uplink, so nothing sensitive sits on its feedline. It has not yet closed an uplink at Borrego."}},
+    "antenna_rx": {"label": "RX antenna", "sub": "M2 436CP30 · 15.5 dBic", "ic": "📡",
+      "role": "Receive-only Yagi on the same cross-boom: longer and higher gain than the TX antenna, because the downlink is the weak direction. Feeds the LNA through a short jumper, with no T/R relay in the path."},
+    "lna": {"label": "Mast LNA", "sub": "upgrade", "ic": "🔊",
+      "role": "Amplifies the weak downlink before cable loss eats it. Must be switched out before transmit or the uplink destroys it.",
+      "split": {"sub": "RX chain", "role": "Sits permanently in the RX line at the mast. Powered by its own 12 V line from the shack, not over the coax. The uplink leaves through the other antenna, so no sequencer is needed. Open question: is the TX antenna far enough away not to overload it?"}},
+    "rotator": {"label": "Rotator", "sub": "az/el drive", "ic": "🧭",
+      "role": "Physically points the antenna along the pass. Tracking error costs dB; this is what keeps a 13 dBi beam on target. The end-mounted Yagi hangs off an aluminium tube boom in the elevation clamp.",
+      "split": {"sub": "turns both antennas", "role": "One rotator turns both antennas together on a fiberglass cross-boom, so the two chains always point at the same place. Fiberglass, because both antennas are center-mounted and a metal boom would sit in their near field."}},
+    "mount": {"label": "Roof mount", "sub": "per site", "ic": "🏗️",
+      "role": "Holds mast, rotator and antenna against wind. A civil decision per site, not a catalogue part."},
+    "tinygs": {"label": "TinyGS node", "sub": "upgrade · standalone", "ic": "🛰️",
+      "role": "A separate cheap receiver with its own antenna. Reports to TinyGS, a second witness that the satellite is alive. Not in the GDS chain."},
+    "coax": {"label": "Coax", "sub": "LMR-400 · two runs", "ic": "〰️",
+      "role": "Carries RF between roof and shack in two runs: antenna to arrestor, then arrestor to the shack. Its ~2.7 dB loss per 100 ft is the biggest passive loss in the link budget.",
+      "split": {"label": "TX coax"}},
+    "coax_rx": {"label": "RX coax", "sub": "LMR-400 · two runs", "ic": "〰️",
+      "role": "Receive feedline, LNA to arrestor to shack. Behind the LNA, so its loss matters far less to the link budget."},
+    "arrestor": {"label": "Lightning arrestor", "sub": "at building entry", "ic": "⚡",
+      "role": "Shunts surges to ground where the coax enters the building, so a strike on the mast doesn't reach the radio or the Pi. N female on both sides, so both feedline runs end in N male.",
+      "split": {"label": "TX arrestor"}},
+    "arrestor_rx": {"label": "RX arrestor", "sub": "at building entry", "ic": "⚡",
+      "role": "Same surge protection on the second run. Every cable entering the building gets one. It blocks DC, which is fine because the LNA has its own 12 V line."},
+    "adapter": {"label": "N→SMA adapter", "sub": "", "ic": "🔩",
+      "role": "Bridges the feedline's N connector to the GRC's SMA port.",
+      "split": {"label": "TX N→SMA"}},
+    "adapter_rx": {"label": "RX N→SMA", "sub": "", "ic": "🔩", "role": "Bridges the RX feedline to the RX GRC."},
+    "swr": {"label": "SWR meter", "sub": "commissioning", "ic": "📏",
+      "role": "Inserted inline once at commissioning to prove the GRC puts out ~1 W and the antenna is matched. It takes the shack run directly, and an N-to-SMA jumper replaces the adapter into the GRC. Removed afterwards."},
+    "grc": {"label": "GRC", "sub": "Radio Stick V2", "ic": "📻",
+      "role": "Ground Radio Controller: the LoRa transceiver (SX1268, +30 dBm). Frames go to and from the Pi over USB serial. The only part with no commercial equivalent.",
+      "split": {"label": "TX GRC", "role": "Transmits only. Takes commands from the Pi over USB and puts +30 dBm on the TX antenna."}},
+    "grc_rx": {"label": "RX GRC", "sub": "V2, or V1 is fine", "ic": "📻",
+      "role": "Receives only. Never transmits, so a Radio Stick V1 is acceptable here. Decoded frames go to the Pi over USB."},
+    "sequencer": {"label": "Sequencer", "sub": "upgrade", "ic": "⏱️",
+      "role": "Keyed from the GRC's TX_EN, it switches the LNA out at least 20 ms before RF leaves the radio."},
+    "usb": {"label": "USB cable", "sub": "data-rated", "ic": "🔌",
+      "role": "Serial link and power for the GRC. A charge-only cable is the classic 'radio never enumerates' failure.",
+      "split": {"sub": "×2, one per GRC"}},
+    "pi": {"label": "Raspberry Pi", "sub": "station computer", "ic": "🖥️",
+      "role": "Runs tracking (rotator commands), the GDS and the mission pack. NTP time sync is a hard requirement: bad time means bad pointing."},
+    "rotctl": {"label": "Rotator interface", "sub": "ERC-DUO · GS-232B", "ic": "🎛️",
+      "role": "Translates GS-232B commands from the Pi (hamlib model 603) into drive for the rotator's controller."},
+    "bench": {"label": "Bench loopback", "sub": "attenuators + jumpers", "ic": "🧪",
+      "role": "Commissioning only: a second GRC behind 30 dB of pads proves a frame decodes without anything on the roof.",
+      "split": {"role": "Commissioning only: the TX GRC loops back to the RX GRC through 30 dB of pads. The station already owns both radios."}}
+  },
+  "positions": {
+    "single": {"antenna": [150, 70], "lna": [150, 165], "rotator": [450, 70], "mount": [450, 165], "tinygs": [870, 70], "coax": [150, 270],
+      "arrestor": [370, 270], "adapter": [370, 360], "swr": [370, 455], "grc": [590, 360], "sequencer": [150, 360], "usb": [770, 360],
+      "pi": [930, 360], "rotctl": [930, 250], "bench": [590, 570]},
+    "split": {"antenna": [240, 55], "antenna_rx": [450, 55], "lna": [450, 125], "rotator": [680, 55], "mount": [680, 135], "tinygs": [930, 55],
+      "coax": [240, 195], "coax_rx": [450, 195], "arrestor": [240, 270], "arrestor_rx": [450, 270], "adapter": [240, 360], "adapter_rx": [450, 360],
+      "swr": [80, 410], "grc": [240, 460], "grc_rx": [450, 460], "usb": [680, 460], "pi": [930, 460], "rotctl": [930, 360], "bench": [345, 585]}
+  },
+  "links": {
+    "single": [
+      ["antenna", "coax", "rf"], ["coax", "arrestor", "rf"], ["arrestor", "adapter", "rf"], ["adapter", "grc", "rf"],
+      ["arrestor", "swr", "rf", [[280, 270], [280, 455]]], ["swr", "grc", "rf", [[480, 455], [480, 360]]], ["grc", "bench", "rf"],
+      ["grc", "usb", "data"], ["usb", "pi", "data"], ["pi", "rotctl", "data"],
+      ["rotctl", "rotator", "ctl"], ["grc", "sequencer", "ctl", [[590, 410], [150, 410]]], ["sequencer", "lna", "ctl", [[40, 360], [40, 165]]],
+      ["mount", "rotator", "mech"], ["rotator", "antenna", "mech"]
+    ],
+    "split": [
+      ["antenna", "coax", "rf"], ["coax", "arrestor", "rf"], ["arrestor", "adapter", "rf"], ["adapter", "grc", "rf"],
+      ["arrestor", "swr", "rf", [[80, 270]]], ["swr", "grc", "rf", [[80, 460]]],
+      ["antenna_rx", "lna", "rf"], ["lna", "coax_rx", "rf"], ["coax_rx", "arrestor_rx", "rf"], ["arrestor_rx", "adapter_rx", "rf"], ["adapter_rx", "grc_rx", "rf"],
+      ["grc", "bench", "rf", [[240, 585]]], ["grc_rx", "bench", "rf", [[450, 585]]],
+      ["grc", "usb", "data", [[240, 510], [680, 510]]], ["grc_rx", "usb", "data"], ["usb", "pi", "data"], ["pi", "rotctl", "data"],
+      ["rotctl", "rotator", "ctl", [[930, 135]]],
+      ["mount", "rotator", "mech"], ["rotator", "antenna_rx", "mech"], ["antenna_rx", "antenna", "mech"]
+    ]
+  },
+  "bands": {
+    "single": [[0, 220, "Roof", "--roof"], [220, 80, "Building entry", "--entry"], [300, 220, "Shack", "--shack"], [520, 110, "Bench · commissioning", "--bench"]],
+    "split": [[0, 230, "Roof", "--roof"], [230, 80, "Building entry", "--entry"], [310, 220, "Shack", "--shack"], [530, 100, "Bench · commissioning", "--bench"]]
+  }
+}
