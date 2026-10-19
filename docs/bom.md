@@ -77,3 +77,69 @@ Suggested by the RF review but not yet in the chain on a pass that closed the li
 | Sequencer for LNA and PA switching | single | Switches the amplifier out before the radio transmits. | Antennas-Amplifiers | [Advanced Sequencer](https://antennas-amplifiers.com/advanced-sequencer/) | 1 | $345.00 | upgrade |  | 2026-10-18 | Owned at LA, not connected. Vendor lists 295.00, EUR by the shop's currency; $345.00 is converted at about 1.17. Key it from the GRC TX_EN with at least 20 ms lead. |
 | TinyGS node | all | Independent receiver reporting to the TinyGS network. | Heltec | [WiFi LoRa 32 (V3), 433 MHz variant](https://heltec.org/project/wifi-lora-32-v3/) | 1 | $19.90 | upgrade | Any TinyGS-supported ESP32 LoRa board | 2026-10-18 | Independent receive-only reporter into the TinyGS network; useful as a second witness, not part of the GDS chain. Order the 433 MHz band variant, not 868 or 915. Vendor store lists $17.90 to $19.90. |
 | Pi 5 real-time clock battery | all | Keeps the Pi's clock running through a power cut. | Raspberry Pi | [RTC battery for Raspberry Pi 5](https://www.pishop.us/product/raspberry-pi-rtc-battery/) | 1 | $5.50 | upgrade |  | 2026-10-18 | Keeps time across a power loss until NTP returns. NTP remains the hard requirement; the battery only shortens the window where the clock is wrong. |
+
+## RF chains
+
+Every junction from the antenna, or the source radio on the bench, to the receiving radio. `render.py` refuses to render unless each out connector mates the next in connector.
+
+### Single antenna: tx
+
+| From | Out | In | To |
+|---|---|---|---|
+| 70 cm crossed Yagi, RHCP, 8+8 elements | N-f | N-m | LMR-400 coax, N male both ends, 100 ft, antenna to arrestor |
+| LMR-400 coax, N male both ends, 100 ft, antenna to arrestor | N-m | N-f | N-type coaxial lightning arrestor, gas discharge |
+| N-type coaxial lightning arrestor, gas discharge | N-f | N-m | LMR-400 jumper, N male both ends, 6 ft, arrestor to shack |
+| LMR-400 jumper, N male both ends, 6 ft, arrestor to shack | N-m | N-f | N female to SMA male adapter |
+| N female to SMA male adapter | SMA-m | SMA-f | GRC: Radio Stick V2 |
+
+### Single antenna: tx-swr
+
+| From | Out | In | To |
+|---|---|---|---|
+| 70 cm crossed Yagi, RHCP, 8+8 elements | N-f | N-m | LMR-400 coax, N male both ends, 100 ft, antenna to arrestor |
+| LMR-400 coax, N male both ends, 100 ft, antenna to arrestor | N-m | N-f | N-type coaxial lightning arrestor, gas discharge |
+| N-type coaxial lightning arrestor, gas discharge | N-f | N-m | LMR-400 jumper, N male both ends, 6 ft, arrestor to shack |
+| LMR-400 jumper, N male both ends, 6 ft, arrestor to shack | N-m | N-f | VHF/UHF digital power and SWR meter, 125 to 525 MHz |
+| VHF/UHF digital power and SWR meter, 125 to 525 MHz | N-f | N-m | SWR meter jumper, N male to SMA male, 3 ft |
+| SWR meter jumper, N male to SMA male, 3 ft | SMA-m | SMA-f | GRC: Radio Stick V2 |
+
+### Split TX/RX: tx
+
+| From | Out | In | To |
+|---|---|---|---|
+| 70 cm crossed Yagi, TX | N-f | N-m | LMR-400 coax, N male both ends, 100 ft, antenna to arrestor |
+| LMR-400 coax, N male both ends, 100 ft, antenna to arrestor | N-m | N-f | N-type coaxial lightning arrestor, gas discharge |
+| N-type coaxial lightning arrestor, gas discharge | N-f | N-m | LMR-400 jumper, N male both ends, 6 ft, arrestor to shack |
+| LMR-400 jumper, N male both ends, 6 ft, arrestor to shack | N-m | N-f | N female to SMA male adapter |
+| N female to SMA male adapter | SMA-m | SMA-f | GRC: Radio Stick V2 |
+
+### Split TX/RX: tx-swr
+
+| From | Out | In | To |
+|---|---|---|---|
+| 70 cm crossed Yagi, TX | N-f | N-m | LMR-400 coax, N male both ends, 100 ft, antenna to arrestor |
+| LMR-400 coax, N male both ends, 100 ft, antenna to arrestor | N-m | N-f | N-type coaxial lightning arrestor, gas discharge |
+| N-type coaxial lightning arrestor, gas discharge | N-f | N-m | LMR-400 jumper, N male both ends, 6 ft, arrestor to shack |
+| LMR-400 jumper, N male both ends, 6 ft, arrestor to shack | N-m | N-f | VHF/UHF digital power and SWR meter, 125 to 525 MHz |
+| VHF/UHF digital power and SWR meter, 125 to 525 MHz | N-f | N-m | SWR meter jumper, N male to SMA male, 3 ft |
+| SWR meter jumper, N male to SMA male, 3 ft | SMA-m | SMA-f | GRC: Radio Stick V2 |
+
+### Split TX/RX: rx
+
+| From | Out | In | To |
+|---|---|---|---|
+| 70 cm crossed Yagi, RX | N-f | N-m | LMR-400 jumper, N male both ends, 3 ft, RX antenna to LNA |
+| LMR-400 jumper, N male both ends, 3 ft, RX antenna to LNA | N-m | N-f | Mast LNA, 70 cm, RX chain |
+| Mast LNA, 70 cm, RX chain | N-f | N-m | LMR-400 coax, N male both ends, 100 ft, antenna to arrestor (RX) |
+| LMR-400 coax, N male both ends, 100 ft, antenna to arrestor (RX) | N-m | N-f | N-type coaxial lightning arrestor, gas discharge (RX) |
+| N-type coaxial lightning arrestor, gas discharge (RX) | N-f | N-m | LMR-400 jumper, N male both ends, 6 ft, arrestor to shack (RX) |
+| LMR-400 jumper, N male both ends, 6 ft, arrestor to shack (RX) | N-m | N-f | N female to SMA male adapter (RX) |
+| N female to SMA male adapter (RX) | SMA-m | SMA-f | GRC: Radio Stick V2 (RX) |
+
+### All configurations: bench
+
+| From | Out | In | To |
+|---|---|---|---|
+| GRC: Radio Stick V2 | SMA-f | SMA-m | SMA male to SMA male jumper, about 1 m |
+| SMA male to SMA male jumper, about 1 m | SMA-m | SMA-f | SMA attenuator pads, 30 dB or more total, 5 W or more |
+| SMA attenuator pads, 30 dB or more total, 5 W or more | SMA-m | SMA-f | GRC: Radio Stick V2 |

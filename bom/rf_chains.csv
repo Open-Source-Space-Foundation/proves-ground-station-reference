@@ -1,0 +1,39 @@
+config,chain,item,in,out
+single,tx,"70 cm crossed Yagi, RHCP, 8+8 elements",,N-f
+single,tx,"LMR-400 coax, N male both ends, 100 ft, antenna to arrestor",N-m,N-m
+single,tx,"N-type coaxial lightning arrestor, gas discharge",N-f,N-f
+single,tx,"LMR-400 jumper, N male both ends, 6 ft, arrestor to shack",N-m,N-m
+single,tx,N female to SMA male adapter,N-f,SMA-m
+single,tx,GRC: Radio Stick V2,SMA-f,
+single,tx-swr,"70 cm crossed Yagi, RHCP, 8+8 elements",,N-f
+single,tx-swr,"LMR-400 coax, N male both ends, 100 ft, antenna to arrestor",N-m,N-m
+single,tx-swr,"N-type coaxial lightning arrestor, gas discharge",N-f,N-f
+single,tx-swr,"LMR-400 jumper, N male both ends, 6 ft, arrestor to shack",N-m,N-m
+single,tx-swr,"VHF/UHF digital power and SWR meter, 125 to 525 MHz",N-f,N-f
+single,tx-swr,"SWR meter jumper, N male to SMA male, 3 ft",N-m,SMA-m
+single,tx-swr,GRC: Radio Stick V2,SMA-f,
+split,tx,"70 cm crossed Yagi, TX",,N-f
+split,tx,"LMR-400 coax, N male both ends, 100 ft, antenna to arrestor",N-m,N-m
+split,tx,"N-type coaxial lightning arrestor, gas discharge",N-f,N-f
+split,tx,"LMR-400 jumper, N male both ends, 6 ft, arrestor to shack",N-m,N-m
+split,tx,N female to SMA male adapter,N-f,SMA-m
+split,tx,GRC: Radio Stick V2,SMA-f,
+split,tx-swr,"70 cm crossed Yagi, TX",,N-f
+split,tx-swr,"LMR-400 coax, N male both ends, 100 ft, antenna to arrestor",N-m,N-m
+split,tx-swr,"N-type coaxial lightning arrestor, gas discharge",N-f,N-f
+split,tx-swr,"LMR-400 jumper, N male both ends, 6 ft, arrestor to shack",N-m,N-m
+split,tx-swr,"VHF/UHF digital power and SWR meter, 125 to 525 MHz",N-f,N-f
+split,tx-swr,"SWR meter jumper, N male to SMA male, 3 ft",N-m,SMA-m
+split,tx-swr,GRC: Radio Stick V2,SMA-f,
+split,rx,"70 cm crossed Yagi, RX",,N-f
+split,rx,"LMR-400 jumper, N male both ends, 3 ft, RX antenna to LNA",N-m,N-m
+split,rx,"Mast LNA, 70 cm, RX chain",N-f,N-f
+split,rx,"LMR-400 coax, N male both ends, 100 ft, antenna to arrestor (RX)",N-m,N-m
+split,rx,"N-type coaxial lightning arrestor, gas discharge (RX)",N-f,N-f
+split,rx,"LMR-400 jumper, N male both ends, 6 ft, arrestor to shack (RX)",N-m,N-m
+split,rx,N female to SMA male adapter (RX),N-f,SMA-m
+split,rx,GRC: Radio Stick V2 (RX),SMA-f,
+all,bench,GRC: Radio Stick V2,,SMA-f
+all,bench,"SMA male to SMA male jumper, about 1 m",SMA-m,SMA-m
+all,bench,"SMA attenuator pads, 30 dB or more total, 5 W or more",SMA-f,SMA-m
+all,bench,GRC: Radio Stick V2,SMA-f,
