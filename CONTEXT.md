@@ -60,6 +60,14 @@ _Avoid_: site config, station JSON, inventory (for this file)
 A part that may replace a reference-design part without re-proving the design, listed on the same BOM line.
 _Avoid_: alternative, equivalent, option
 
+**BOM status**:
+The `status` column of a hardware BOM line, one of four values. `proven`: the named part is in the reference design. `substitute`: the named part is an accepted substitute, usually because the proven station's exact part was not recorded. `upgrade`: a recommended upgrade. `untested`: a generic part (card, cable, mount) that no pass depends on by model.
+_Avoid_: state, tier, grade
+
+**Commissioning kit**:
+The bench gear an uplink station needs only to pass the acceptance check: the power meter, the attenuator pad and the SMA jumpers. A receive station does not need it.
+_Avoid_: test kit, bench attenuation, tools
+
 ### Lifecycle
 
 **Provisioned**:
