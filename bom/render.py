@@ -17,8 +17,10 @@ COLS = ["group", "item", "vendor", "part", "url", "qty", "unit_price_usd", "subs
         "config", "block", "flag", "purpose", "note"]
 STATUSES = {"proven", "substitute", "upgrade", "untested"}
 FLAGS = {"", "intl", "proves", "site"}
-# The BOM is published; device serials must not be. Mixed letter-digit run of 8+ chars.
-SERIAL = re.compile(r"\b(?=[A-Z0-9]*\d)(?=[A-Z0-9]*[A-Z])[A-Z0-9]{8,}\b")
+# The BOM is published; device serials must not be. Mixed letter-digit run of 8+ chars, any case
+# (USB serials such as the RP2350's print as lowercase hex).
+SERIAL = re.compile(r"\b(?=[a-z0-9]*\d)(?=[a-z0-9]*[a-z])[a-z0-9]{8,}\b", re.I)
+FREE_TEXT = ["item", "purpose", "substitute", "note"]
 URL = re.compile(r"https?://\S+")
 CHAIN_COLS = ["config", "chain", "item", "in", "out"]
 CHAINS = [("single", "tx"), ("single", "tx-swr"), ("split", "tx"), ("split", "tx-swr"), ("split", "rx"), ("all", "bench")]
@@ -50,9 +52,6 @@ def load(name, topo):
             sys.exit(f"{name}.csv: qty {r['qty']!r} is not an integer on {it!r}")
         if r["unit_price_usd"] != "?" and not re.fullmatch(r"\d+(\.\d+)?", r["unit_price_usd"]):
             sys.exit(f"{name}.csv: price {r['unit_price_usd']!r} is not a number or '?' on {it!r}")
-        for tok in SERIAL.findall(URL.sub("", r["note"])):
-            if tok not in r["part"]:
-                sys.exit(f"{name}.csv: note on {it!r} carries {tok!r}, which looks like a device serial; publish the fact without the value")
         for cfg in configs_of(r):
             if r["block"] not in topo["positions"][cfg]:
                 sys.exit(f"{name}.csv: block {r['block']!r} on {it!r} is not in topology.json for config {cfg}")
@@ -69,6 +68,18 @@ def check_topology(topo):
             for b in link[:2]:
                 if b not in pos:
                     sys.exit(f"topology.json: {cfg} link {link[:2]} names {b!r}, which has no {cfg} position")
+
+
+def check_serials(files):
+    """files: {csv name: rows}. A token that is some row's part number is a catalogue number, not a serial."""
+    parts = " ".join(r["part"] for rows in files.values() for r in rows).casefold()
+    for name, rows in files.items():
+        for r in rows:
+            for col in FREE_TEXT:
+                for tok in SERIAL.findall(URL.sub("", r[col])):
+                    if tok.casefold() not in parts:
+                        sys.exit(f"{name}: {col} on {r['item']!r} carries {tok!r}, which looks like a device serial; "
+                                 "publish the fact without the value")
 
 
 def check_unique(files):
@@ -209,7 +220,9 @@ def main():
     topo = json.loads((BOM / "topology.json").read_text())
     check_topology(topo)
     ref, upg = load("reference", topo), load("upgrades", topo)
-    check_unique({"reference.csv": ref, "upgrades.csv": upg})
+    files = {"reference.csv": ref, "upgrades.csv": upg}
+    check_unique(files)
+    check_serials(files)
     chains = load_chains({r["item"]: r for r in ref})
     (ROOT / "docs" / "bom.md").write_text(render_md(ref, upg, chains))
     (ROOT / "docs" / "bom.html").write_text(render_html(ref, upg, topo))
