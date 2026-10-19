@@ -160,7 +160,7 @@ function OrderSheet() {
       <td class="hide-sm">${flag(r)}${r.substitute && !r.substitute.startsWith("None") ? `<div class="pp">Substitutes OK</div>` : ""}</td></tr>`;
   }).join("")).join("");
   const note = S.cfg === "split" ? `<div class="splitnote"><b>Split TX / RX</b> uses one antenna, cable run and radio for transmit and a second set for receive, on one rotator.
-    Compared with the single antenna, it swaps the end-mounted Yagi and aluminium tube for two center-mounted M2 Yagis on a fiberglass cross-boom, and adds a second pair of coax runs, arrestor, adapter, GRC and USB cable.
+    Compared with the single antenna, it swaps the end-mounted Yagi and aluminium tube for two M2 Yagis on a fiberglass cross-boom (Borrego center-mounts both), and adds a second pair of coax runs, arrestor, adapter, GRC and USB cable.
     The mast LNA becomes a standard part with its own 12 V line, and the sequencer and T/R relay kit are no longer needed. Known cost goes up by ${usd(cost(ref("split")) - cost(ref("single")))}.</div>` : "";
   return `<h2 class="view">Everything to build one station</h2>
     <p class="muted">Prices checked on each line's last-priced date; shipping and tax not included.</p>

@@ -10,7 +10,7 @@
       "split": {"sub": "RX chain", "role": "Sits permanently in the RX line at the mast. Powered by its own 12 V line from the shack, not over the coax. The uplink leaves through the other antenna, so no sequencer is needed. Open question: is the TX antenna far enough away not to overload it?"}},
     "rotator": {"label": "Rotator", "sub": "az/el drive", "ic": "🧭",
       "role": "Physically points the antenna along the pass. Tracking error costs dB; this is what keeps a 13 dBi beam on target. The end-mounted Yagi hangs off an aluminium tube boom in the elevation clamp.",
-      "split": {"sub": "turns both antennas", "role": "One rotator turns both antennas together on a fiberglass cross-boom, so the two chains always point at the same place. Fiberglass, because both antennas are center-mounted and a metal boom would sit in their near field."}},
+      "split": {"sub": "turns both antennas", "role": "One rotator turns both antennas together on a fiberglass cross-boom, so the two chains always point at the same place. Fiberglass, because M2's manuals call for a non-conductive cross-boom so metal stays out of the antennas' near field. Borrego center-mounts both Yagis on it."}},
     "mount": {"label": "Roof mount", "sub": "per site", "ic": "🏗️",
       "role": "Holds mast, rotator and antenna against wind. A civil decision per site, not a catalogue part."},
     "tinygs": {"label": "TinyGS node", "sub": "upgrade · standalone", "ic": "🛰️",
