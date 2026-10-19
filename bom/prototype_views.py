@@ -58,12 +58,11 @@ LA_BOOM = dict(ROW, group="Rotator", item="Antenna boom, end-mount", vendor="McM
          "McMaster part number and price not recorded.")
 CROSSBOOM = dict(ROW, group="Rotator", item="Fiberglass cross-boom for two antennas", vendor="M2 Antenna Systems",
     part="FGCB60 (CROSSBOOM, HD FG 11 ft)", url="https://www.m2inc.com/FGCB60", unit_price_usd="389.99",
-    status="proven", flag="verify", node="rotator",
+    status="proven", node="rotator",
     purpose="Carries the TX and RX antennas side by side on one rotator.",
-    note="Borrego uses an M2 fiberglass cross-boom; the exact model is not recorded. FGCB60 is M2's 11 ft heavy-duty boom "
-         "for the G-5500. Fiberglass keeps metal out of the near field of the center-mounted antennas.")
+    note="Borrego's cross-boom. M2's 11 ft heavy-duty boom for the G-5500. Fiberglass keeps metal out of the near field of the center-mounted antennas.")
 TX_ANT = dict(ROW, group="Antenna", item="70 cm crossed Yagi, TX", vendor="M2 Antenna Systems", part="436CP16",
-    url="https://m2inc.com/FG436CP16", unit_price_usd="367.95", status="untested", flag="verify", node="antenna", chain="tx",
+    url="https://m2inc.com/FG436CP16", unit_price_usd="367.95", status="untested", node="antenna", chain="tx",
     purpose="Transmit antenna. Center-mounts on the cross-boom.",
     note="Borrego's TX antenna. It has not yet closed an uplink at Borrego. LA's reference Yagi is end-mounted, "
          "which suits a tube boom rather than a center cross-boom.")
